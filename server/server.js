@@ -60,6 +60,7 @@ app.use(morgan(isProd ? "combined" : "dev"));
 if (isProd) {
   app.set("trust proxy", 1);
   app.use((req, res, next) => {
+    if (req.path === "/health") return next();
     if (req.headers["x-forwarded-proto"] !== "https") {
       return res.redirect(301, `https://${req.headers.host}${req.url}`);
     }
