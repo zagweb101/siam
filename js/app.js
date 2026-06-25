@@ -680,9 +680,10 @@ window.App = (() => {
       const cta=document.querySelector('[data-action="subscribe"]');
       cta.parentNode.insertBefore(holder, cta.nextSibling);
     }
-    if(holder.dataset.rendered) return;
+    if(holder.dataset.rendered || holder.dataset.rendering) return;
     const msg = (text,danger)=>{ holder.innerHTML = `<p class="pp-msg" style="font-size:12.5px;text-align:center;line-height:1.6;${danger?'color:var(--danger)':'color:var(--ink-soft)'}">${text}</p>`; };
     if(!cfg.paypalClientId){ msg("PayPal client id missing",1); return; }
+    holder.dataset.rendering = "1";
     msg("⏳ "+t("common.loading"));
 
     loadPayPalSdk(()=>{
@@ -728,20 +729,31 @@ window.App = (() => {
       try{
         const btns = paypal.Buttons(btnCfg);
         if(typeof btns.isEligible === "function" && !btns.isEligible()){
+          holder.dataset.rendering = "";
           msg("⚠️ زر PayPal غير مؤهّل — الحساب قد لا يكون مفعّلاً للاشتراكات أو القيود الجغرافية.",1);
           return;
         }
         holder.innerHTML = "";
         btns.render("#paypalHolder").then(()=>{
           holder.dataset.rendered="1";
+          holder.dataset.rendering = "";
           const cta=document.querySelector('[data-action="subscribe"]');
           if(cta) cta.style.display="none";   // hide demo button so it can't grant free Pro
           const note=document.querySelector('.paywall-sheet .paywall-note');
           if(note) note.textContent = t("paywall.secure");
-        }).catch(e=> msg("⚠️ render: "+((e&&e.message)||e),1));
+        }).catch(e=> {
+          holder.dataset.rendering = "";
+          msg("⚠️ render: "+((e&&e.message)||e),1);
+        });
       }
-      catch(e){ msg("⚠️ "+((e&&e.message)||e),1); }
-    }, (why)=> msg("⚠️ "+(why||"تعذّر تحميل PayPal"),1));
+      catch(e){
+        holder.dataset.rendering = "";
+        msg("⚠️ "+((e&&e.message)||e),1);
+      }
+    }, (why)=> {
+      holder.dataset.rendering = "";
+      msg("⚠️ "+(why||"تعذّر تحميل PayPal"),1);
+    });
   }
   function loadPayPalSdk(cb, onerr){
     if(window.paypal) return cb();
