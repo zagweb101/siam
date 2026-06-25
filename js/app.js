@@ -13,8 +13,36 @@ window.App = (() => {
     const st = Store.get();
     i18n.set(st.lang || "ar");
     bindGlobalEvents();
-    if(st.onboarded){ enterApp(); }
-    else { showScreen("splash"); }
+    if(Auth.isLoggedIn()){
+      hydrateFromCloud().finally(()=>{
+        if(Store.get().onboarded) enterApp(); else showScreen("splash");
+      });
+    } else {
+      if(st.onboarded) enterApp(); else showScreen("splash");
+    }
+  }
+
+  /* pull the user's profile + Pro status from the server (source of truth) */
+  async function hydrateFromCloud(){
+    if(!Auth.isLoggedIn()) return false;
+    try{
+      const j = await Auth.me();
+      if(j.profile && j.profile.answers){
+        Store.set({ answers:j.profile.answers, plan:j.profile.plan || null, onboarded:true, pro:!!j.pro });
+      } else {
+        Store.set({ pro:!!j.pro });
+        await syncToCloud();           // new account → push local wizard data up
+      }
+      updateProBadge();
+      return true;
+    }catch(e){ if(e && e.status===401) Auth.logout(); return false; }
+  }
+
+  /* save current profile (answers + plan) to the cloud when logged in */
+  async function syncToCloud(){
+    if(!Auth.isLoggedIn()) return;
+    const st = Store.get();
+    try{ await Auth.saveProfile({ answers:st.answers, plan:st.plan }); }catch(e){}
   }
 
   function showScreen(name){
@@ -55,6 +83,10 @@ window.App = (() => {
         break;
       case "open-terms": openLegal("terms"); break;
       case "open-privacy": openLegal("privacy"); break;
+      case "open-auth": gateAuth(()=>rerenderCurrent()); break;
+      case "auth-toggle": authMode = authMode==="login" ? "register" : "login"; showAuth(); break;
+      case "auth-submit": submitAuth(); break;
+      case "logout": Auth.logout(); Store.set({ pro:false }); updateProBadge(); rerenderCurrent(); toast(t("auth.logout")); break;
       case "wizard-next": Wizard.next(); break;
       case "wizard-back": Wizard.back(); break;
       case "toggle-lang": {
@@ -334,7 +366,8 @@ window.App = (() => {
       <div class="profile-head">
         <div class="avatar">${a.gender==="female"?"👩":"🧑"}</div>
         <h2>${esc(name)}</h2>
-        <div class="p-sub">${st.pro? "👑 "+t("p.pro") : t("profile.member")}</div>
+        <div class="p-sub">${Auth.isLoggedIn()? esc((Auth.user()||{}).email||"") : t("auth.guest")}</div>
+        ${st.pro?`<div class="p-sub" style="color:var(--green-700);font-weight:700;margin-top:2px">👑 ${t("p.pro")}</div>`:""}
       </div>
       <div class="stat-row">
         <div class="stat-box"><b>${p.proto}</b><span>${t("p.proto")}</span></div>
@@ -342,6 +375,9 @@ window.App = (() => {
         <div class="stat-box"><b>${p.calories}</b><span>${t("common.cal")}</span></div>
       </div>
       <div class="list-group">
+        ${Auth.isLoggedIn()
+          ? `<div class="list-item" data-action="logout"><span class="li-ico">🚪</span><span>${t("auth.logout")}</span><span class="li-arrow">${L()==='ar'?'‹':'›'}</span></div>`
+          : `<div class="list-item" data-action="open-auth"><span class="li-ico">👤</span><span>${t("auth.login")} / ${t("auth.register")}</span><span class="li-arrow">${L()==='ar'?'‹':'›'}</span></div>`}
         <div class="list-item" data-action="restart-wizard"><span class="li-ico">🎯</span><span>${t("p.editplan")}</span><span class="li-arrow">${L()==='ar'?'‹':'›'}</span></div>
         <div class="list-item" data-action="manage-sub"><span class="li-ico">👑</span><span>${t("p.subscription")}</span><span class="li-arrow">${st.pro?t("p.pro"):t("p.free")}</span></div>
         <div class="list-item" data-action="toggle-lang"><span class="li-ico">🌐</span><span>${t("p.lang")}</span><span class="li-arrow">${L()==='ar'?'العربية':'English'}</span></div>
@@ -456,6 +492,57 @@ window.App = (() => {
     openModal();
   }
 
+  /* ---- account / auth ---- */
+  let authMode = "login";
+  let _pendingAfterAuth = null;
+  function gateAuth(then){
+    if(Auth.isLoggedIn()){ then && then(); return; }
+    _pendingAfterAuth = then || null;
+    authMode = "login";
+    showAuth();
+  }
+  function showAuth(){
+    const isLogin = authMode==="login";
+    fillModal(`
+      <div class="detail-body" style="padding:28px 22px 30px">
+        <button class="icon-btn close-x" data-action="close-modal" style="position:static;float:${L()==='ar'?'left':'right'}">×</button>
+        <div style="text-align:center;font-size:40px">🌿</div>
+        <h4 style="text-align:center;font-size:20px">${isLogin?t("auth.login"):t("auth.register")}</h4>
+        <p class="paywall-note" style="text-align:center;margin-bottom:6px">${_pendingAfterAuth?t("auth.subPrompt"):""}</p>
+        <div id="authErr" class="paywall-note" style="color:var(--danger);text-align:center;min-height:14px"></div>
+        <div class="field"><label>${t("auth.email")}</label><input id="authEmail" type="email" autocomplete="email" inputmode="email" /></div>
+        <div class="field"><label>${t("auth.pass")}</label><input id="authPass" type="password" autocomplete="${isLogin?'current-password':'new-password'}" /></div>
+        <button class="btn btn-primary btn-block" data-action="auth-submit" id="authBtn">${isLogin?t("auth.loginCta"):t("auth.registerCta")}</button>
+        <p class="paywall-note" style="text-align:center;margin-top:14px">
+          <a data-action="auth-toggle" style="color:var(--green-700);cursor:pointer;font-weight:700">${isLogin?t("auth.toRegister"):t("auth.toLogin")}</a>
+        </p>
+      </div>`);
+    openModal();
+    setTimeout(()=>{ const el=document.getElementById("authEmail"); if(el) el.focus(); }, 60);
+  }
+  async function submitAuth(){
+    const email=(document.getElementById("authEmail")||{}).value||"";
+    const pass=(document.getElementById("authPass")||{}).value||"";
+    const errEl=document.getElementById("authErr");
+    const btn=document.getElementById("authBtn");
+    if(errEl) errEl.textContent="";
+    if(btn){ btn.disabled=true; btn.textContent=t("common.loading"); }
+    try{
+      if(authMode==="login") await Auth.login(email,pass);
+      else await Auth.register(email,pass);
+      await hydrateFromCloud();
+      closeModal();
+      updateProBadge();
+      toast(authMode==="login"?t("auth.welcome"):t("auth.created"));
+      const cb=_pendingAfterAuth; _pendingAfterAuth=null; if(cb) cb();
+    }catch(e){
+      const key="auth.err."+((e&&e.message)||"generic");
+      const msg=i18n.t(key);
+      if(errEl) errEl.textContent = (msg===key ? t("auth.err.generic") : msg);
+      if(btn){ btn.disabled=false; btn.textContent = authMode==="login"?t("auth.loginCta"):t("auth.registerCta"); }
+    }
+  }
+
   function openLocked(){
     fillModal(`
       <div class="detail-body" style="text-align:center;padding:40px 26px">
@@ -481,6 +568,8 @@ window.App = (() => {
      ============================================================ */
   let selectedPlan = "yearly";
   function openPaywall(){
+    // require an account first so the subscription is saved to the user (cross-device)
+    if(!Auth.isLoggedIn()){ gateAuth(()=>openPaywall()); return; }
     document.getElementById("paywallRoot").hidden=false;
     document.querySelectorAll(".plan-card").forEach(c=>c.classList.toggle("is-sel", c.dataset.plan===selectedPlan));
     mountPayPal();
@@ -533,28 +622,31 @@ window.App = (() => {
       const useSubs = Boolean(planId());
       const btnCfg = { style:{ shape:"pill", color:"gold", layout:"vertical", height:44 } };
 
+      const authH = ()=>Object.assign({"Content-Type":"application/json"}, Auth.authHeader());
+      const uid = ()=> String((Auth.user()||{}).id || "");
+
       if(useSubs){
-        // ---- recurring subscription ----
-        btnCfg.createSubscription = (d,actions)=>actions.subscription.create({ plan_id: planId() });
+        // ---- recurring subscription (bound to the user via custom_id) ----
+        btnCfg.createSubscription = (d,actions)=>actions.subscription.create({ plan_id: planId(), custom_id: uid() });
         btnCfg.onApprove = async (data)=>{
           if(base){
             try{
-              const r=await fetch(base+"/api/subscriptions/verify",{method:"POST",headers:{"Content-Type":"application/json"},
+              const r=await fetch(base+"/api/subscriptions/verify",{method:"POST",headers:authH(),
                 body:JSON.stringify({ subscriptionID:data.subscriptionID })});
               const j=await r.json(); if(j.pro) return doSubscribe("subscription");
+              toast("⚠️ "+(j.status||"error"));
             }catch(e){ console.warn(e); }
-          }
-          doSubscribe("subscription");
+          } else doSubscribe("subscription");
         };
       } else if(base){
-        // ---- one-time order, created & captured on the server ----
+        // ---- one-time order, created & captured on the server (bound to user) ----
         btnCfg.createOrder = async ()=>{
-          const r=await fetch(base+"/api/orders",{method:"POST",headers:{"Content-Type":"application/json"},
+          const r=await fetch(base+"/api/orders",{method:"POST",headers:authH(),
             body:JSON.stringify({ plan:selectedPlan })});
           const j=await r.json(); return j.id;
         };
         btnCfg.onApprove = async (data)=>{
-          const r=await fetch(base+`/api/orders/${data.orderID}/capture`,{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});
+          const r=await fetch(base+`/api/orders/${data.orderID}/capture`,{method:"POST",headers:authH(),body:"{}"});
           const j=await r.json(); if(j.pro) doSubscribe("order"); else toast("⚠️ "+(j.status||"error"));
         };
       } else {
@@ -686,7 +778,7 @@ window.App = (() => {
     clearTimeout(el._t); el._t=setTimeout(()=>el.hidden=true, 2600);
   }
 
-  return { init, showScreen, enterApp, switchTab, toast, openPaywall, closeModal, openLocked, syncServerConfig };
+  return { init, showScreen, enterApp, switchTab, toast, openPaywall, closeModal, openLocked, syncServerConfig, syncToCloud };
 })();
 
 document.addEventListener("DOMContentLoaded", ()=>{

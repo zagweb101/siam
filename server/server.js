@@ -7,6 +7,8 @@ import express from "express";
 import dotenv from "dotenv";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import * as db from "./db.js";
+import { hashPassword, verifyPassword, signToken, authRequired, isValidEmail } from "./auth.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // load server/.env no matter which folder we're started from (Railway uses
@@ -84,17 +86,45 @@ async function pp(endpoint, method = "GET", body) {
   return { ok: r.ok, status: r.status, data };
 }
 
-/* ===========================================================
-   Simple entitlement store (DEMO).
-   In production replace with a real database keyed by your user id.
-   =========================================================== */
-const entitlements = new Map(); // userId -> { pro:true, source, ref, ts }
-function grantPro(userId, source, ref) {
-  entitlements.set(userId || "demo-user", { pro: true, source, ref, ts: Date.now() });
-}
-
 const needPaypal = (_req, res, next) => configured ? next()
   : res.status(503).json({ error: "PayPal not configured on server. Fill .env." });
+
+/* ===========================================================
+   AUTH — register / login / me / profile sync
+   =========================================================== */
+app.post("/api/auth/register", async (req, res) => {
+  const { email, password } = req.body || {};
+  if (!isValidEmail(email)) return res.status(400).json({ error: "invalid_email" });
+  if (!password || String(password).length < 6) return res.status(400).json({ error: "weak_password" });
+  try {
+    if (await db.getUserByEmail(email)) return res.status(409).json({ error: "email_taken" });
+    const user = await db.createUser(email, hashPassword(password));
+    res.json({ token: signToken({ uid: user.id, email: user.email }), user });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/auth/login", async (req, res) => {
+  const { email, password } = req.body || {};
+  try {
+    const u = await db.getUserByEmail(email);
+    if (!u || !verifyPassword(password, u.password_hash)) return res.status(401).json({ error: "bad_credentials" });
+    res.json({ token: signToken({ uid: u.id, email: u.email }), user: { id: u.id, email: u.email } });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get("/api/me", authRequired, async (req, res) => {
+  try {
+    const [profile, pro] = await Promise.all([db.getProfile(req.userId), db.isPro(req.userId)]);
+    res.json({ user: { id: req.userId, email: req.userEmail }, profile, pro });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put("/api/me/profile", authRequired, async (req, res) => {
+  const data = req.body && req.body.profile;
+  if (!data || typeof data !== "object") return res.status(400).json({ error: "no_profile" });
+  try { await db.saveProfile(req.userId, data); res.json({ ok: true }); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
 
 /* ---- public config for the front-end (NO secret) ---- */
 app.get("/api/config", (_req, res) => {
@@ -113,7 +143,7 @@ app.get("/health", (_req, res) => res.json({ ok: true, env: PAYPAL_ENV, configur
 /* ===========================================================
    ONE-TIME ORDERS
    =========================================================== */
-app.post("/api/orders", needPaypal, async (req, res) => {
+app.post("/api/orders", needPaypal, authRequired, async (req, res) => {
   try {
     const plan = req.body?.plan === "yearly" ? "yearly" : "monthly";
     const value = plan === "yearly" ? PRICE_YEARLY : PRICE_MONTHLY;
@@ -129,12 +159,12 @@ app.post("/api/orders", needPaypal, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post("/api/orders/:id/capture", needPaypal, async (req, res) => {
+app.post("/api/orders/:id/capture", needPaypal, authRequired, async (req, res) => {
   try {
     const { ok, data } = await pp(`/v2/checkout/orders/${req.params.id}/capture`, "POST");
     if (!ok) return res.status(502).json({ error: "capture_failed", details: data });
     if (data.status === "COMPLETED") {
-      grantPro(req.body?.userId, "order", data.id);
+      await db.setSubscription(req.userId, { status: "COMPLETED", source: "order", ref: data.id });
       return res.json({ status: "COMPLETED", pro: true, id: data.id });
     }
     res.status(402).json({ status: data.status, pro: false });
@@ -146,14 +176,14 @@ app.post("/api/orders/:id/capture", needPaypal, async (req, res) => {
    The button calls createSubscription on the client with a plan_id;
    here we verify it is ACTIVE before granting Pro.
    =========================================================== */
-app.post("/api/subscriptions/verify", needPaypal, async (req, res) => {
+app.post("/api/subscriptions/verify", needPaypal, authRequired, async (req, res) => {
   try {
     const id = req.body?.subscriptionID;
     if (!id) return res.status(400).json({ error: "missing subscriptionID" });
     const { ok, data } = await pp(`/v1/billing/subscriptions/${id}`, "GET");
     if (!ok) return res.status(502).json({ error: "verify_failed", details: data });
     const active = data.status === "ACTIVE" || data.status === "APPROVED";
-    if (active) grantPro(req.body?.userId, "subscription", id);
+    if (active) await db.setSubscription(req.userId, { status: data.status, source: "subscription", ref: id, planId: data.plan_id });
     res.json({ status: data.status, pro: active });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -178,27 +208,30 @@ app.post("/api/webhook", needPaypal, async (req, res) => {
 
     const event = req.body?.event_type;
     const resource = req.body?.resource || {};
-    if (event === "BILLING.SUBSCRIPTION.ACTIVATED" || event === "PAYMENT.SALE.COMPLETED") {
-      grantPro(resource.custom_id, "webhook", resource.id);
-    } else if (event === "BILLING.SUBSCRIPTION.CANCELLED" || event === "BILLING.SUBSCRIPTION.EXPIRED") {
-      const u = resource.custom_id || "demo-user";
-      entitlements.delete(u);
+    const uid = Number(resource.custom_id);
+    if (uid) {
+      if (event === "BILLING.SUBSCRIPTION.ACTIVATED" || event === "PAYMENT.SALE.COMPLETED") {
+        await db.setSubscription(uid, { status: "ACTIVE", source: "webhook", ref: resource.id, planId: resource.plan_id });
+      } else if (event === "BILLING.SUBSCRIPTION.CANCELLED" || event === "BILLING.SUBSCRIPTION.EXPIRED") {
+        await db.setSubscription(uid, { status: "CANCELLED", source: "webhook", ref: resource.id });
+      }
     }
-    console.log("webhook:", event);
+    console.log("webhook:", event, "user:", uid || "-");
     res.sendStatus(200);
   } catch (e) { console.error("webhook error", e.message); res.sendStatus(500); }
 });
 
 /* entitlement check (front-end can poll this) */
-app.get("/api/entitlement/:userId", (req, res) => {
-  const e = entitlements.get(req.params.userId) || { pro: false };
-  res.json(e);
+app.get("/api/entitlement/:userId", async (req, res) => {
+  res.json({ pro: await db.isPro(req.params.userId) });
 });
 
 /* ---- serve the front-end (single deploy) ---- */
 app.use(express.static(path.join(__dirname, "..")));
 app.get("*", (_req, res) => res.sendFile(path.join(__dirname, "..", "index.html")));
 
-app.listen(PORT, () => {
-  console.log(`\n🌿 Siam server on http://localhost:${PORT}  [${PAYPAL_ENV}]  configured=${configured}\n`);
-});
+db.init()
+  .then(() => app.listen(PORT, () => {
+    console.log(`\n🌿 Siam server on http://localhost:${PORT}  [${PAYPAL_ENV}]  configured=${configured}\n`);
+  }))
+  .catch((err) => { console.error("❌ DB init failed:", err.message); process.exit(1); });

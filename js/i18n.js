@@ -68,6 +68,16 @@ window.I18N = {
     "toast.subscribed":"🎉 تم تفعيل Pro! استمتع بكل المزايا","toast.unsub":"تم إلغاء الاشتراك","toast.planready":"تم إنشاء خطتك بنجاح ✅",
     "common.min":"دقيقة","common.cal":"سعرة","common.loading":"جارٍ التحميل...",
 
+    // auth / account
+    "auth.login":"تسجيل الدخول","auth.register":"إنشاء حساب","auth.email":"البريد الإلكتروني","auth.pass":"كلمة المرور",
+    "auth.loginCta":"دخول","auth.registerCta":"إنشاء الحساب",
+    "auth.toRegister":"ليس لديك حساب؟ أنشئ واحداً","auth.toLogin":"لديك حساب؟ سجّل الدخول",
+    "auth.logout":"تسجيل الخروج","auth.account":"الحساب","auth.guest":"زائر — لم تسجّل الدخول",
+    "auth.subPrompt":"سجّل الدخول أو أنشئ حساباً لإتمام الاشتراك وحفظه على كل أجهزتك.",
+    "auth.synced":"بياناتك متزامنة على السحابة ☁️","auth.welcome":"أهلاً بعودتك 👋","auth.created":"تم إنشاء حسابك 🎉",
+    "auth.err.invalid_email":"بريد إلكتروني غير صالح","auth.err.weak_password":"كلمة المرور 6 أحرف على الأقل",
+    "auth.err.email_taken":"البريد مسجّل بالفعل","auth.err.bad_credentials":"بيانات الدخول غير صحيحة","auth.err.generic":"تعذّر الاتصال بالخادم",
+
     // medical disclaimer + legal
     "disc.title":"تنبيه صحي مهم","disc.body":"تطبيق صِيام أداة معلوماتية للعافية وليس بديلاً عن الاستشارة الطبية. استشر طبيباً مختصاً قبل بدء أي نظام صيام أو غذائي.",
     "disc.p1":"الصيام قد لا يناسب الحوامل والمرضعات.",
@@ -76,7 +86,7 @@ window.I18N = {
     "disc.agree":"فهمت وأوافق على المتابعة","disc.minor":"⚠️ التطبيق مخصص لمن هم 18 عاماً فأكثر. يُرجى استشارة ولي الأمر والطبيب.",
     "p.terms":"الشروط والأحكام","p.privacy":"سياسة الخصوصية",
     "legal.terms.title":"الشروط والأحكام","legal.terms.body":"باستخدامك تطبيق صِيام فإنك توافق على أنه أداة معلوماتية للعافية فقط، وأنك المسؤول الوحيد عن قراراتك الصحية. الاشتراك الشهري/السنوي يُجدَّد تلقائياً ويمكن إلغاؤه في أي وقت من إعدادات حسابك في PayPal. لا نقدّم وعوداً بنتائج محددة.",
-    "legal.privacy.title":"سياسة الخصوصية","legal.privacy.body":"بياناتك (الاسم، العمر، الوزن، الطول، الهدف) تُحفظ محلياً على جهازك فقط ولا تُرسل لخوادمنا. عمليات الدفع تتم بأمان عبر PayPal ولا نطّلع على بيانات بطاقتك. يمكنك حذف بياناتك بإعادة ضبط التطبيق.",
+    "legal.privacy.title":"سياسة الخصوصية","legal.privacy.body":"كزائر، بياناتك تُحفظ محلياً على جهازك فقط. عند إنشاء حساب، يُحفظ ملفك (الاسم، العمر، الوزن، الطول، الهدف) وحالة اشتراكك بشكل آمن على خادمنا لمزامنتها عبر أجهزتك، وكلمة المرور مُشفّرة ولا نطّلع عليها. عمليات الدفع تتم بأمان عبر PayPal ولا نرى بيانات بطاقتك.",
   },
 
   en: {
@@ -137,6 +147,15 @@ window.I18N = {
     "toast.subscribed":"🎉 Pro activated! Enjoy all features","toast.unsub":"Subscription cancelled","toast.planready":"Your plan was created ✅",
     "common.min":"min","common.cal":"cal","common.loading":"Loading...",
 
+    "auth.login":"Log in","auth.register":"Create account","auth.email":"Email","auth.pass":"Password",
+    "auth.loginCta":"Log in","auth.registerCta":"Create account",
+    "auth.toRegister":"No account? Create one","auth.toLogin":"Have an account? Log in",
+    "auth.logout":"Log out","auth.account":"Account","auth.guest":"Guest — not signed in",
+    "auth.subPrompt":"Log in or create an account to complete and keep your subscription across all devices.",
+    "auth.synced":"Your data is synced to the cloud ☁️","auth.welcome":"Welcome back 👋","auth.created":"Account created 🎉",
+    "auth.err.invalid_email":"Invalid email","auth.err.weak_password":"Password must be 6+ characters",
+    "auth.err.email_taken":"Email already registered","auth.err.bad_credentials":"Wrong email or password","auth.err.generic":"Couldn't reach the server",
+
     "disc.title":"Important health notice","disc.body":"Siam is a wellness information tool, not a substitute for medical advice. Consult a qualified doctor before starting any fasting or diet program.",
     "disc.p1":"Fasting may not suit pregnant or breastfeeding women.",
     "disc.p2":"People with diabetes, blood-pressure issues, or on medication should check with a doctor first.",
@@ -144,7 +163,7 @@ window.I18N = {
     "disc.agree":"I understand & continue","disc.minor":"⚠️ This app is intended for ages 18+. Please consult a parent/guardian and a doctor.",
     "p.terms":"Terms & conditions","p.privacy":"Privacy policy",
     "legal.terms.title":"Terms & conditions","legal.terms.body":"By using Siam you agree it is a wellness information tool only and that you are solely responsible for your health decisions. Monthly/yearly subscriptions renew automatically and can be cancelled anytime from your PayPal account settings. We make no guarantee of specific results.",
-    "legal.privacy.title":"Privacy policy","legal.privacy.body":"Your data (name, age, weight, height, goal) is stored locally on your device only and is not sent to our servers. Payments are processed securely by PayPal; we never see your card details. You can erase your data by resetting the app.",
+    "legal.privacy.title":"Privacy policy","legal.privacy.body":"As a guest, your data stays on your device only. When you create an account, your profile (name, age, weight, height, goal) and subscription status are stored securely on our server to sync across your devices; your password is hashed and never visible to us. Payments are processed securely by PayPal; we never see your card details.",
   }
 };
 

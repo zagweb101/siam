@@ -122,6 +122,7 @@ window.Wizard = (() => {
     Store.generatePlan();
     Store.set({ onboarded:true });
     App.enterApp();
+    if(App.syncToCloud) App.syncToCloud();   // save plan to cloud if logged in
     App.toast(t("toast.planready"));
   }
 

@@ -3,6 +3,9 @@
 **/.env
 server/.env
 
+# local dev database (contains user data / password hashes)
+server/data.local.json
+
 # ===== Dependencies =====
 node_modules/
 **/node_modules/

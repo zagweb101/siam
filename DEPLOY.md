@@ -42,10 +42,18 @@ git push -u origin main
    | `PRICE_MONTHLY` | `4.99` |
    | `PRICE_YEARLY` | `35.88` |
    | `CURRENCY` | `USD` |
+   | `JWT_SECRET` | نص عشوائي طويل (لتأمين تسجيل الدخول) |
 
    > `PORT` متحطّهوش — Railway بيوفّره تلقائياً والسيرفر بيستخدمه.
+   > لتوليد `JWT_SECRET`: في PowerShell شغّل
+   > `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` وانسخ الناتج.
 
-4. Railway هيديك دومين زي `https://siam-production.up.railway.app`. افتحه — المفروض التطبيق يشتغل والدفع متوصّل تلقائياً (نفس الدومين).
+4. **أضف قاعدة البيانات (PostgreSQL):**
+   - داخل مشروع Railway اضغط **New** → **Database** → **Add PostgreSQL**.
+   - Railway بيحقن متغير `DATABASE_URL` تلقائياً في السيرفر، والكود بينشئ الجداول لوحده عند أول تشغيل.
+   - من غير قاعدة بيانات، السيرفر بيستخدم ملف JSON محلي (يضيع مع كل redeploy) — فلازم تضيف Postgres للإنتاج.
+
+5. Railway هيديك دومين زي `https://siam-production.up.railway.app`. افتحه — المفروض التطبيق يشتغل، تسجيل الدخول والدفع والمزامنة كلها متوصّلة تلقائياً (نفس الدومين).
 
 ---
 
