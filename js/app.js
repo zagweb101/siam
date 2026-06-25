@@ -763,8 +763,8 @@ window.App = (() => {
       const r=await fetch(base+"/api/config"); if(!r.ok) return;
       const j=await r.json();
       if(j.clientId) SIAM_CONFIG.paypalClientId=j.clientId;
-      if(j.planMonthly) SIAM_CONFIG.planMonthlyId=j.planMonthly;
-      if(j.planYearly) SIAM_CONFIG.planYearlyId=j.planYearly;
+      if(j.planMonthly !== undefined) SIAM_CONFIG.planMonthlyId=j.planMonthly;
+      if(j.planYearly !== undefined) SIAM_CONFIG.planYearlyId=j.planYearly;
       if(j.prices) SIAM_CONFIG.prices=j.prices;
     }catch(e){ /* offline: keep local config */ }
   }
