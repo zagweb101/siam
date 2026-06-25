@@ -7,6 +7,9 @@ import express from "express";
 import dotenv from "dotenv";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import helmet from "helmet";
+import morgan from "morgan";
+import rateLimit from "express-rate-limit";
 import * as db from "./db.js";
 import { hashPassword, verifyPassword, signToken, authRequired, isValidEmail } from "./auth.js";
 
@@ -27,7 +30,10 @@ const {
   CURRENCY = "USD",
   PORT = 3000,
   ALLOWED_ORIGINS = "",
+  NODE_ENV = "development",
 } = process.env;
+
+const isProd = NODE_ENV === "production";
 
 const BASE = PAYPAL_ENV === "live"
   ? "https://api-m.paypal.com"
@@ -41,6 +47,44 @@ if (!configured) {
 
 const app = express();
 
+/* ---- Security: Helmet (HTTP security headers) ---- */
+app.use(helmet({
+  contentSecurityPolicy: false,      // we load external fonts/images/PayPal SDK
+  crossOriginEmbedderPolicy: false,  // PayPal iframes need this
+}));
+
+/* ---- Logging: Morgan ---- */
+app.use(morgan(isProd ? "combined" : "dev"));
+
+/* ---- HTTPS redirect (production only, behind proxy like Railway) ---- */
+if (isProd) {
+  app.set("trust proxy", 1);
+  app.use((req, res, next) => {
+    if (req.headers["x-forwarded-proto"] !== "https") {
+      return res.redirect(301, `https://${req.headers.host}${req.url}`);
+    }
+    next();
+  });
+}
+
+/* ---- Rate Limiting ---- */
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,  // 15 minutes
+  max: 100,                  // max 100 requests per IP per window
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "too_many_requests" },
+});
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,  // 15 minutes
+  max: 20,                   // max 20 auth attempts per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "too_many_requests" },
+});
+app.use("/api/", apiLimiter);
+app.use("/api/auth/", authLimiter);
+
 /* ---- CORS (allowlist) ---- */
 const origins = ALLOWED_ORIGINS.split(",").map(s => s.trim()).filter(Boolean);
 app.use((req, res, next) => {
@@ -49,8 +93,8 @@ app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", o);
     res.setHeader("Vary", "Origin");
   }
-  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   if (req.method === "OPTIONS") return res.sendStatus(204);
   next();
 });

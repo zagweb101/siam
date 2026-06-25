@@ -75,7 +75,7 @@ window.API = (() => {
 
   /* ---------------- WORKOUTS (wger) ---------------- */
   async function workouts(category, lang){
-    const langId = lang === "ar" ? 1 : 2; // wger: 2=English, 1=German(fallback) -> we request English then localize labels
+    // wger API: always request English (language=2), then show localized labels from fallback data
     try{
       let url = `${WGER}/exercise/?language=2&limit=24&format=json`;
       if(category) url += `&category=${category}`;

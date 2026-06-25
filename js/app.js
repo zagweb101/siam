@@ -111,6 +111,7 @@ window.App = (() => {
         if(Store.get().pro){ toast(t("sub.manageInfo")); }
         else openPaywall();
         break;
+      case "locked-upgrade": closeModal(); openPaywall(); break;
     }
   }
 
@@ -554,7 +555,7 @@ window.App = (() => {
         <div style="font-size:54px">🔒</div>
         <h4 style="font-size:20px">${t("locked.title")}</h4>
         <p>${t("locked.body")}</p>
-        <button class="btn btn-primary btn-block" data-action="close-modal" onclick="App.closeModal();App.openPaywall()">${t("locked.cta")} 👑</button>
+        <button class="btn btn-primary btn-block" data-action="locked-upgrade">${t("locked.cta")} 👑</button>
       </div>`);
     openModal();
   }
@@ -596,13 +597,7 @@ window.App = (() => {
   }
 
   const CFG = ()=> window.SIAM_CONFIG || {};
-  function apiBase(){
-    let b = (CFG().apiBase || "").replace(/\/$/,"");
-    // when no apiBase is set but the app is served over http(s) (e.g. Railway),
-    // talk to the SAME origin that served the page — so deploys need zero config.
-    if(!b && typeof location !== "undefined" && location.protocol.indexOf("http") === 0) b = location.origin;
-    return b;
-  }
+  function apiBase(){ return Auth.apiBase(); }
 
   /* PayPal Smart Buttons.
      · If a backend (SIAM_CONFIG.apiBase) is set  → real, server-verified flow

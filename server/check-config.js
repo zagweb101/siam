@@ -5,7 +5,10 @@
    Run:  node check-config.js     (does NOT print your secret)
    ============================================================ */
 import dotenv from "dotenv";
-dotenv.config();
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.join(__dirname, ".env") });
 
 const { PAYPAL_CLIENT_ID = "", PAYPAL_SECRET = "", PAYPAL_ENV = "sandbox" } = process.env;
 

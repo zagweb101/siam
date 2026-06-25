@@ -4,7 +4,10 @@
    Run:  npm run setup-plans
    ============================================================ */
 import dotenv from "dotenv";
-dotenv.config();
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.join(__dirname, ".env") });
 
 const {
   PAYPAL_ENV = "sandbox",
