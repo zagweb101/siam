@@ -1,6 +1,6 @@
 {
   "name": "siam-app",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Siam — intermittent fasting PWA + PayPal backend (Railway-ready)",
   "type": "module",
   "engines": {
