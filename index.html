@@ -4,8 +4,47 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#0f9d6b" />
-  <meta name="description" content="صِيام · رفيقك الذكي للصيام المتقطع — خطة مخصصة، وجبات، تمارين ومقالات." />
-  <title>صِيام · Siam</title>
+  <title>صِيام · Siam — تطبيق الصيام المتقطع | خطة مخصصة، وجبات وتمارين</title>
+  <meta name="description" content="صِيام · رفيقك الذكي للصيام المتقطع. أجب على أسئلة بسيطة واحصل على خطة صيام مخصصة (14:10 / 16:8 / 18:6) مع حساب السعرات و BMI، مؤقّت صيام، وجبات وتمارين ومقالات. عربي/إنجليزي." />
+  <meta name="keywords" content="الصيام المتقطع, intermittent fasting, خطة صيام, 16:8, إنقاص الوزن, حرق الدهون, السعرات, BMI, وجبات صحية, تمارين, صيام, fasting timer, keto, دايت" />
+  <meta name="author" content="Siam" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://siam-production.up.railway.app/" />
+
+  <!-- Open Graph (Facebook, WhatsApp, LinkedIn) -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="صِيام · Siam" />
+  <meta property="og:title" content="صِيام · Siam — رفيقك الذكي للصيام المتقطع" />
+  <meta property="og:description" content="خطة صيام متقطع مخصصة لك في دقيقة: بروتوكول مناسب، سعرات، مؤقّت، وجبات وتمارين. عربي/إنجليزي." />
+  <meta property="og:image" content="https://siam-production.up.railway.app/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="صِيام · رفيقك الذكي للصيام المتقطع" />
+  <meta property="og:locale" content="ar_AR" />
+  <meta property="og:locale:alternate" content="en_US" />
+
+  <!-- Twitter / X -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="صِيام · Siam — رفيقك الذكي للصيام المتقطع" />
+  <meta name="twitter:description" content="خطة صيام متقطع مخصصة لك في دقيقة: بروتوكول مناسب، سعرات، مؤقّت، وجبات وتمارين." />
+  <meta name="twitter:image" content="https://siam-production.up.railway.app/og-image.png" />
+
+  <!-- Structured data: helps search engines & rich results -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "صِيام · Siam",
+    "applicationCategory": "HealthApplication",
+    "operatingSystem": "Web, Android, iOS",
+    "description": "تطبيق الصيام المتقطع: خطة مخصصة، مؤقّت صيام، وجبات، تمارين ومقالات.",
+    "inLanguage": ["ar", "en"],
+    "offers": [
+      { "@type": "Offer", "price": "4.99", "priceCurrency": "USD", "name": "Monthly Pro" },
+      { "@type": "Offer", "price": "35.88", "priceCurrency": "USD", "name": "Yearly Pro" }
+    ]
+  }
+  </script>
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.webmanifest" />
@@ -18,6 +57,12 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://www.themealdb.com" />
+  <link rel="dns-prefetch" href="https://wger.de" />
+  <link rel="dns-prefetch" href="https://ar.wikipedia.org" />
+  <link rel="dns-prefetch" href="https://en.wikipedia.org" />
+  <link rel="dns-prefetch" href="https://images.unsplash.com" />
+  <link rel="dns-prefetch" href="https://www.paypal.com" />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/styles.css" />
 </head>
@@ -129,8 +174,14 @@
               <span class="plan-price"><b>$2.99</b><small data-i18n="paywall.permonth">/شهر</small></span>
             </button>
           </div>
+          <p class="paywall-value" data-i18n="paywall.value">الخطة السنوية بأقل من ٠.١٠$ في اليوم</p>
           <button class="btn btn-primary btn-block" data-action="subscribe" data-i18n="paywall.cta">اشترك الآن</button>
-          <p class="paywall-note" data-i18n="paywall.demo">نسخة تجريبية — لا يتم خصم أي مبلغ. الدفع الفعلي يُضاف لاحقاً عبر Stripe.</p>
+          <div class="trust-row">
+            <span class="trust-item">🔒 <span data-i18n="paywall.trust1">دفع آمن 100%</span></span>
+            <span class="trust-item">↩️ <span data-i18n="paywall.trust2">ألغِ في أي وقت</span></span>
+            <span class="trust-item">✓ <span data-i18n="paywall.trust3">بدون رسوم خفية</span></span>
+          </div>
+          <p class="paywall-note" data-i18n="paywall.demo">الدفع آمن عبر PayPal. يمكنك إلغاء الاشتراك في أي وقت.</p>
         </div>
       </div>
 

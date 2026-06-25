@@ -37,6 +37,7 @@ window.I18N = {
     "home.calories":"سعرات يومية","home.timer.title":"مؤقّت الصيام","home.fasting":"صائم الآن","home.eating":"نافذة الأكل",
     "home.start":"ابدأ الصيام","home.stop":"إنهاء","home.recmeals":"وجبات مقترحة لك",
     "home.recworkouts":"تمارين اليوم","home.tips":"نصائح سريعة","home.seeall":"عرض الكل",
+    "home.streak":"سلسلة الأيام","home.completed":"صيامات مكتملة","home.best":"أطول سلسلة",
     "upsell.title":"افتح كل المزايا مع Pro","upsell.sub":"وجبات أسبوعية · تمارين مصوّرة · مقالات حصرية",
 
     // meals
@@ -61,13 +62,18 @@ window.I18N = {
     "paywall.monthly":"شهري","paywall.yearly":"سنوي","paywall.permonth":"/شهر","paywall.save":"وفّر 40%",
     "paywall.cta":"اشترك الآن","paywall.demo":"الدفع آمن عبر PayPal. يمكنك إلغاء الاشتراك في أي وقت.",
     "paywall.secure":"🔒 دفع آمن عبر PayPal · يمكنك الإلغاء في أي وقت",
+    "paywall.value":"الخطة السنوية بأقل من ٠.١٠$ في اليوم",
+    "paywall.trust1":"دفع آمن 100%","paywall.trust2":"ألغِ في أي وقت","paywall.trust3":"بدون رسوم خفية",
     "paywall.usebtn":"من فضلك أكمل الدفع عبر زر PayPal بالأعلى",
     "sub.manageInfo":"لإلغاء أو إدارة اشتراكك، ادخل إعدادات حسابك في PayPal.",
 
     // misc
     "locked.title":"محتوى حصري","locked.body":"هذا المحتوى متاح لمشتركي Pro فقط.","locked.cta":"الترقية إلى Pro",
+    "gate.meals.title":"خطة وجباتك متاحة في Pro","gate.meals.body":"اشترك في Siam Pro للحصول على خطة وجبات كاملة بالوصفات والصور مخصّصة لهدفك.",
+    "gate.workouts.title":"خطة تمارينك متاحة في Pro","gate.workouts.body":"اشترك في Siam Pro للحصول على مكتبة تمارين مصوّرة بالتفصيل مخصّصة لمستواك.",
+    "gate.cta":"الترقية إلى Pro 👑","gate.note":"تصفّح المعلومات والمقالات مجاناً — الخطط الغذائية والرياضية لمشتركي Pro.",
     "detail.ingredients":"المكوّنات","detail.steps":"طريقة التحضير","detail.muscles":"العضلات المستهدفة","detail.readmore":"المصدر الكامل",
-    "toast.subscribed":"🎉 تم تفعيل Pro! استمتع بكل المزايا","toast.unsub":"تم إلغاء الاشتراك","toast.planready":"تم إنشاء خطتك بنجاح ✅",
+    "toast.subscribed":"🎉 تم تفعيل Pro! استمتع بكل المزايا","toast.unsub":"تم إلغاء الاشتراك","toast.planready":"تم إنشاء خطتك بنجاح ✅","toast.fastlogged":"أحسنت! تم تسجيل صيامك ✅",
     "common.min":"دقيقة","common.cal":"سعرة","common.loading":"جارٍ التحميل...",
 
     // auth / account
@@ -124,6 +130,7 @@ window.I18N = {
     "home.calories":"Daily calories","home.timer.title":"Fasting timer","home.fasting":"Fasting now","home.eating":"Eating window",
     "home.start":"Start fasting","home.stop":"End","home.recmeals":"Meals picked for you",
     "home.recworkouts":"Today's workouts","home.tips":"Quick tips","home.seeall":"See all",
+    "home.streak":"Day streak","home.completed":"Fasts completed","home.best":"Best streak",
     "upsell.title":"Unlock everything with Pro","upsell.sub":"Weekly meals · illustrated workouts · exclusive articles",
 
     "meals.title":"Meals","meals.search":"Search a meal...",
@@ -143,12 +150,17 @@ window.I18N = {
     "paywall.monthly":"Monthly","paywall.yearly":"Yearly","paywall.permonth":"/mo","paywall.save":"Save 40%",
     "paywall.cta":"Subscribe now","paywall.demo":"Secure payment via PayPal. Cancel anytime.",
     "paywall.secure":"🔒 Secure payment via PayPal · cancel anytime",
+    "paywall.value":"The yearly plan is less than $0.10 a day",
+    "paywall.trust1":"100% secure payment","paywall.trust2":"Cancel anytime","paywall.trust3":"No hidden fees",
     "paywall.usebtn":"Please complete payment with the PayPal button above",
     "sub.manageInfo":"To cancel or manage your subscription, open your PayPal account settings.",
 
     "locked.title":"Exclusive content","locked.body":"This content is available to Pro members only.","locked.cta":"Upgrade to Pro",
+    "gate.meals.title":"Your meal plan is in Pro","gate.meals.body":"Subscribe to Siam Pro for a full meal plan with recipes and photos, tailored to your goal.",
+    "gate.workouts.title":"Your workout plan is in Pro","gate.workouts.body":"Subscribe to Siam Pro for a detailed illustrated workout library tailored to your level.",
+    "gate.cta":"Upgrade to Pro 👑","gate.note":"Browse info and articles for free — meal & workout plans are for Pro members.",
     "detail.ingredients":"Ingredients","detail.steps":"Instructions","detail.muscles":"Target muscles","detail.readmore":"Full source",
-    "toast.subscribed":"🎉 Pro activated! Enjoy all features","toast.unsub":"Subscription cancelled","toast.planready":"Your plan was created ✅",
+    "toast.subscribed":"🎉 Pro activated! Enjoy all features","toast.unsub":"Subscription cancelled","toast.planready":"Your plan was created ✅","toast.fastlogged":"Well done! Fast logged ✅",
     "common.min":"min","common.cal":"cal","common.loading":"Loading...",
 
     "auth.login":"Log in","auth.register":"Create account","auth.email":"Email","auth.pass":"Password",

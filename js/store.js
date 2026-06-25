@@ -11,7 +11,8 @@ window.Store = (() => {
     lang:"ar",
     answers:{ name:"", gender:"male", age:30, weight:75, height:172, goal:"lose", exp:"new", diet:"all" },
     plan:null,
-    fast:{ active:false, startTs:null }
+    fast:{ active:false, startTs:null },
+    stats:{ completed:0, streak:0, best:0, lastDay:null }
   };
 
   let state = load();
@@ -45,10 +46,11 @@ window.Store = (() => {
     else if(a.goal === "muscle") cal = tdee + 250;
     cal = Math.round(cal/10)*10;
 
-    // protocol by experience + goal
-    let proto = "16:8";
-    if(a.exp === "new") proto = a.goal === "lose" ? "14:10" : "14:10";
-    else if(a.exp === "some") proto = a.goal === "lose" ? "16:8" : "16:8";
+    // protocol by experience + goal:
+    // beginners ease in (14:10); experienced fat-loss goes deeper (18:6).
+    let proto;
+    if(a.exp === "new") proto = "14:10";
+    else if(a.exp === "some") proto = "16:8";
     else proto = a.goal === "lose" ? "18:6" : "16:8";
 
     // BMI
@@ -76,6 +78,26 @@ window.Store = (() => {
     return plan;
   }
 
+  /* ---------- fasting streak / completion tracking ----------
+     Counts a fast as "completed" once the user has fasted at least half of
+     their target window. Distinct calendar days build the streak. */
+  function recordFast(elapsedSec){
+    const goal = ((state.plan && state.plan.fast) || 16) * 3600;
+    if(!elapsedSec || elapsedSec < goal * 0.5) return null;
+    const s = state.stats || (state.stats = { completed:0, streak:0, best:0, lastDay:null });
+    const dayKey = (d)=>{ const x=new Date(d); x.setHours(0,0,0,0); return x.toISOString().slice(0,10); };
+    const today = dayKey(Date.now());
+    if(s.lastDay !== today){
+      const yesterday = dayKey(Date.now() - 86400000);
+      s.streak = (s.lastDay === yesterday) ? (s.streak || 0) + 1 : 1;
+      s.lastDay = today;
+    }
+    s.completed = (s.completed || 0) + 1;
+    if(s.streak > (s.best || 0)) s.best = s.streak;
+    save();
+    return s;
+  }
+
   function dietToMealCat(diet){
     switch(diet){
       case "veg": return "Vegetarian";
@@ -85,5 +107,5 @@ window.Store = (() => {
     }
   }
 
-  return { get, set, setAnswer, reset, save, generatePlan };
+  return { get, set, setAnswer, reset, save, generatePlan, recordFast };
 })();

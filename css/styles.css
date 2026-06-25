@@ -361,6 +361,33 @@ img,svg,video{max-width:100%;height:auto}
   }
 }
 
+/* Paywall: value framing + trust badges (boosts conversion) */
+.paywall-value{
+  text-align:center;font-weight:700;color:var(--green-700);font-size:13.5px;
+  background:var(--green-100);border-radius:99px;padding:8px 14px;margin:2px 0 12px
+}
+.trust-row{
+  display:flex;flex-wrap:wrap;justify-content:center;gap:10px 16px;
+  margin:12px 0 4px;color:var(--ink-soft);font-size:12px;font-weight:600
+}
+.trust-item{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+
+/* Home stats card spacing */
+.stats-card{margin:4px 2px 14px}
+
+/* Pro gate (shown instead of meal/workout plans for non-subscribers) */
+.pro-gate{
+  text-align:center;background:#fff;border:1.5px solid var(--green-300);
+  border-radius:22px;padding:30px 22px;margin:6px 2px 14px;
+  box-shadow:0 10px 30px rgba(15,157,107,.08);animation:slideUp .35s
+}
+.pro-gate .pg-crown{font-size:46px;line-height:1;margin-bottom:8px}
+.pro-gate h3{font-size:19px;margin:6px 0 6px}
+.pro-gate>p{color:var(--ink-soft);font-size:14px;line-height:1.7;margin:0 0 14px}
+.pro-gate .paywall-feats{text-align:start;margin:0 auto 18px;max-width:340px}
+.pro-gate .btn{max-width:340px;margin-inline:auto}
+.pro-gate .paywall-note{margin-top:12px}
+
 /* animations */
 @keyframes fade{from{opacity:0}to{opacity:1}}
 @keyframes slideUp{from{transform:translateY(40px);opacity:.4}to{transform:translateY(0);opacity:1}}

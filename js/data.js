@@ -45,18 +45,20 @@ window.DATA = {
   ],
 
   /* Article topics pulled from Wikipedia (free, no key) */
+  /* Articles are free "simple info" for everyone — the gated value is the
+     meal & workout PLANS (Pro), not general knowledge. */
   articleTopics: [
     { ar:"الصيام المتقطع", en:"Intermittent fasting", free:true,
       img:"https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=400&q=70" },
-    { ar:"الالتهام الذاتي", en:"Autophagy", free:false,
+    { ar:"الالتهام الذاتي", en:"Autophagy", free:true,
       img:"https://images.unsplash.com/photo-1554080353-a576cf803bda?w=400&q=70" },
-    { ar:"حمية الكيتو", en:"Ketogenic diet", free:false,
+    { ar:"حمية الكيتو", en:"Ketogenic diet", free:true,
       img:"https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&q=70" },
     { ar:"مؤشر كتلة الجسم", en:"Body mass index", free:true,
       img:"https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&q=70" },
-    { ar:"التمثيل الغذائي", en:"Metabolism", free:false,
+    { ar:"التمثيل الغذائي", en:"Metabolism", free:true,
       img:"https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400&q=70" },
-    { ar:"بروتين", en:"Protein (nutrient)", free:false,
+    { ar:"بروتين", en:"Protein (nutrient)", free:true,
       img:"https://images.unsplash.com/photo-1532550907401-a500c9a57435?w=400&q=70" },
   ],
 

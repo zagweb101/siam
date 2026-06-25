@@ -28,7 +28,8 @@ window.App = (() => {
     try{
       const j = await Auth.me();
       if(j.profile && j.profile.answers){
-        Store.set({ answers:j.profile.answers, plan:j.profile.plan || null, onboarded:true, pro:!!j.pro });
+        Store.set({ answers:j.profile.answers, plan:j.profile.plan || null,
+          stats:j.profile.stats || Store.get().stats, onboarded:true, pro:!!j.pro });
       } else {
         Store.set({ pro:!!j.pro });
         await syncToCloud();           // new account → push local wizard data up
@@ -42,7 +43,7 @@ window.App = (() => {
   async function syncToCloud(){
     if(!Auth.isLoggedIn()) return;
     const st = Store.get();
-    try{ await Auth.saveProfile({ answers:st.answers, plan:st.plan }); }catch(e){}
+    try{ await Auth.saveProfile({ answers:st.answers, plan:st.plan, stats:st.stats }); }catch(e){}
   }
 
   function showScreen(name){
@@ -54,7 +55,13 @@ window.App = (() => {
     showScreen("main");
     i18n.apply();
     updateProBadge();
-    switchTab("home");
+    // honor PWA shortcut deep-links (?tab=meals etc.)
+    let tab = "home";
+    try{
+      const q = new URLSearchParams(location.search).get("tab");
+      if(["home","meals","articles","workouts","profile"].includes(q)) tab = q;
+    }catch(e){}
+    switchTab(tab);
   }
 
   /* ---------------- events ---------------- */
@@ -100,6 +107,9 @@ window.App = (() => {
       case "close-paywall": closePaywall(); break;
       case "close-modal": closeModal(); break;
       case "subscribe": {
+        // Require an account first so the subscription is tied to the user
+        // (cross-device) and PayPal gets a custom_id.
+        if(!Auth.isLoggedIn()){ gateAuth(()=>{ openPaywall(); mountPayPal(); }); break; }
         const holder = document.getElementById("paypalHolder");
         // If PayPal buttons already rendered, scroll to them
         if(holder && holder.dataset.rendered){
@@ -148,9 +158,30 @@ window.App = (() => {
   function renderHome(){
     const st = Store.get(), a = st.answers;
     const p = st.plan || Store.generatePlan();
+    const isPro = !!st.pro;
     const name = a.name ? a.name : t("profile.guest");
     const v = document.querySelector('.view[data-view="home"]');
     const eatStr = fmtWindow(p.eatStart, p.eatEnd);
+
+    // Free users get the suggested fasting plan + timer + tips + articles (simple
+    // info). The actual meal & workout PLANS are Pro-only, so we show an upsell
+    // instead of recommendations. Pro users get the recommendations inline.
+    const recSections = isPro ? `
+      <div class="sec-head"><h3>${t("home.recmeals")}</h3><a data-tab-link="meals">${t("home.seeall")}</a></div>
+      <div class="hscroll" id="homeMeals">${skelCards(3)}</div>
+
+      <div class="sec-head"><h3>${t("home.recworkouts")}</h3><a data-tab-link="workouts">${t("home.seeall")}</a></div>
+      <div class="hscroll" id="homeWorkouts">${skelCards(3)}</div>
+    ` : "";
+    const upsell = isPro ? "" : `
+      <div class="upsell" data-action="open-paywall">
+        <span class="up-ico">👑</span>
+        <div class="up-body">
+          <div class="up-title">${t("upsell.title")}</div>
+          <div class="up-sub">${t("upsell.sub")}</div>
+        </div>
+        <span class="up-arrow">${L()==="ar"?"‹":"›"}</span>
+      </div>`;
 
     v.innerHTML = `
       <div class="hello">
@@ -175,20 +206,10 @@ window.App = (() => {
 
       ${timerCard()}
 
-      <div class="upsell" data-action="open-paywall">
-        <span class="up-ico">👑</span>
-        <div class="up-body">
-          <div class="up-title">${t("upsell.title")}</div>
-          <div class="up-sub">${t("upsell.sub")}</div>
-        </div>
-        <span class="up-arrow">${L()==="ar"?"‹":"›"}</span>
-      </div>
+      ${statsCard()}
 
-      <div class="sec-head"><h3>${t("home.recmeals")}</h3><a data-tab-link="meals">${t("home.seeall")}</a></div>
-      <div class="hscroll" id="homeMeals">${skelCards(3)}</div>
-
-      <div class="sec-head"><h3>${t("home.recworkouts")}</h3><a data-tab-link="workouts">${t("home.seeall")}</a></div>
-      <div class="hscroll" id="homeWorkouts">${skelCards(3)}</div>
+      ${upsell}
+      ${recSections}
 
       <div class="sec-head"><h3>${t("home.tips")}</h3></div>
       <div class="lcard" style="cursor:default">
@@ -199,17 +220,28 @@ window.App = (() => {
     v.querySelectorAll("[data-tab-link]").forEach(a=>a.addEventListener("click",()=>switchTab(a.dataset.tabLink)));
     startTimerLoop();
 
-    // load meals + workouts
-    API.meals(p.mealCat).then(list=>{
-      cache.meals[p.mealCat]=list;
-      const box=document.getElementById("homeMeals"); if(box) box.innerHTML = list.slice(0,6).map(mealCard).join("");
-      bindCards(box,"meal");
-    });
-    API.workouts(null,L()).then(list=>{
-      cache.workouts["all"]=list;
-      const box=document.getElementById("homeWorkouts"); if(box) box.innerHTML = list.slice(0,6).map(workoutCard).join("");
-      bindCards(box,"workout");
-    });
+    // load meals + workouts (Pro only — these are the gated "plan")
+    if(isPro){
+      API.meals(p.mealCat).then(list=>{
+        cache.meals[p.mealCat]=list;
+        const box=document.getElementById("homeMeals"); if(box) box.innerHTML = list.slice(0,6).map(mealCard).join("");
+        bindCards(box,"meal");
+      });
+      API.workouts(null,L()).then(list=>{
+        cache.workouts["all"]=list;
+        const box=document.getElementById("homeWorkouts"); if(box) box.innerHTML = list.slice(0,6).map(workoutCard).join("");
+        bindCards(box,"workout");
+      });
+    }
+  }
+
+  function statsCard(){
+    const s = Store.get().stats || { completed:0, streak:0, best:0 };
+    return `<div class="stat-row stats-card">
+      <div class="stat-box"><b>🔥 ${s.streak||0}</b><span>${t("home.streak")}</span></div>
+      <div class="stat-box"><b>✅ ${s.completed||0}</b><span>${t("home.completed")}</span></div>
+      <div class="stat-box"><b>🏆 ${s.best||0}</b><span>${t("home.best")}</span></div>
+    </div>`;
   }
 
   function timerCard(){
@@ -258,22 +290,47 @@ window.App = (() => {
   }
   function toggleFast(){
     const st=Store.get();
-    if(st.fast.active) Store.set({ fast:{active:false,startTs:null} });
-    else Store.set({ fast:{active:true,startTs:Date.now()} });
-    const btn=document.getElementById("fastBtn");
-    if(btn){
-      const on=Store.get().fast.active;
-      btn.textContent = on? t("home.stop"):t("home.start");
-      btn.className = "btn "+(on?"btn-outline":"btn-primary");
+    if(st.fast.active){
+      // ending a fast → log it for streak/stats, then refresh the home view
+      const elapsed = st.fast.startTs ? Math.floor((Date.now()-st.fast.startTs)/1000) : 0;
+      Store.set({ fast:{active:false,startTs:null} });
+      const rec = Store.recordFast(elapsed);
+      if(rec) toast(t("toast.fastlogged"));
+      if(App.syncToCloud) App.syncToCloud();
+      if(currentTab==="home") renderHome(); else drawTimer();
+      return;
     }
+    Store.set({ fast:{active:true,startTs:Date.now()} });
+    const btn=document.getElementById("fastBtn");
+    if(btn){ btn.textContent=t("home.stop"); btn.className="btn btn-outline"; }
     drawTimer();
   }
 
   /* ============================================================
      MEALS
      ============================================================ */
+  /* Pro gate shown in place of the meal/workout PLAN for non-subscribers */
+  function proGate(kind){
+    const titleKey = kind==="meals" ? "meals.title" : "workouts.title";
+    return `
+      <div class="hello"><h2>${t(titleKey)}</h2></div>
+      <div class="pro-gate">
+        <div class="pg-crown">👑</div>
+        <h3>${t("gate."+kind+".title")}</h3>
+        <p>${t("gate."+kind+".body")}</p>
+        <ul class="paywall-feats">
+          <li><span>✓</span> <span>${t("paywall.f1")}</span></li>
+          <li><span>✓</span> <span>${t("paywall.f2")}</span></li>
+          <li><span>✓</span> <span>${t("paywall.f4")}</span></li>
+        </ul>
+        <button class="btn btn-primary btn-block" data-action="open-paywall">${t("gate.cta")}</button>
+        <p class="paywall-note">${t("gate.note")}</p>
+      </div>`;
+  }
+
   function renderMeals(){
     const v = document.querySelector('.view[data-view="meals"]');
+    if(!Store.get().pro){ v.innerHTML = proGate("meals"); return; }
     const cats = [
       {k:"Vegetarian",l:t("meals.veg")},{k:"Breakfast",l:t("meals.breakfast")},
       {k:"Seafood",l:t("meals.seafood")},{k:"Chicken",l:t("meals.chicken")},
@@ -335,6 +392,7 @@ window.App = (() => {
      ============================================================ */
   function renderWorkouts(){
     const v = document.querySelector('.view[data-view="workouts"]');
+    if(!Store.get().pro){ v.innerHTML = proGate("workouts"); return; }
     const cats = DATA.workoutCats;
     v.innerHTML = `
       <div class="hello"><h2>${t("workouts.title")}</h2></div>
@@ -583,11 +641,12 @@ window.App = (() => {
      ============================================================ */
   let selectedPlan = "yearly";
   function openPaywall(){
-    // require an account first so the subscription is saved to the user (cross-device)
-    if(!Auth.isLoggedIn()){ gateAuth(()=>openPaywall()); return; }
+    // Viewing the offer is open to everyone (so a visitor can read it and close
+    // it to keep browsing). Login is only required to actually subscribe, so the
+    // PayPal buttons are mounted lazily once the user is signed in.
     document.getElementById("paywallRoot").hidden=false;
     document.querySelectorAll(".plan-card").forEach(c=>c.classList.toggle("is-sel", c.dataset.plan===selectedPlan));
-    mountPayPal();
+    if(Auth.isLoggedIn()) mountPayPal();
   }
   function closePaywall(){ document.getElementById("paywallRoot").hidden=true; }
   function selectPlan(el){

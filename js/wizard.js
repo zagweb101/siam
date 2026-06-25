@@ -125,6 +125,11 @@ window.Wizard = (() => {
     App.enterApp();
     if(App.syncToCloud) App.syncToCloud();   // save plan to cloud if logged in
     App.toast(t("toast.planready"));
+    // Show the suggested plan first, then offer Pro. The visitor can subscribe
+    // or close the paywall and keep browsing the free tier.
+    if(!Store.get().pro && App.openPaywall){
+      setTimeout(()=>App.openPaywall(), 700);
+    }
   }
 
   /* helpers */

@@ -266,10 +266,14 @@ app.post("/api/webhook", needPaypal, async (req, res) => {
   } catch (e) { console.error("webhook error", e.message); res.sendStatus(500); }
 });
 
-/* entitlement check (front-end can poll this) */
-app.get("/api/entitlement/:userId", async (req, res) => {
-  res.json({ pro: await db.isPro(req.params.userId) });
+/* entitlement check — authenticated; a user can only read their own status.
+   (The front-end normally gets `pro` from /api/me; this is a lightweight poll.) */
+app.get("/api/entitlement", authRequired, async (req, res) => {
+  res.json({ pro: await db.isPro(req.userId) });
 });
+
+/* ---- unknown API routes → JSON 404 (never the SPA HTML) ---- */
+app.use("/api", (_req, res) => res.status(404).json({ error: "not_found" }));
 
 /* ---- serve the front-end (single deploy) ---- */
 app.use(express.static(path.join(__dirname, "..")));
