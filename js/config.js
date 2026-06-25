@@ -17,10 +17,10 @@ window.SIAM_CONFIG = {
   // "sandbox" while testing, "live" for production.
   paypalEnv: "live",
 
-  // Optional: recurring plan ids (from `npm run setup-plans`). If set,
-  // the app shows a recurring Subscribe button instead of one-time pay.
-  planMonthlyId: "",
-  planYearlyId: "",
+  // Recurring plan ids (from `npm run setup-plans`). Hardcoded so the
+  // PayPal subscription button never depends on a config fetch finishing first.
+  planMonthlyId: "P-3EW61213AA840122SNI6WSGY",
+  planYearlyId: "P-87U827837S8781716NI6WSHA",
 
   currency: "USD",
 };

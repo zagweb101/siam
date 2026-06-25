@@ -611,7 +611,6 @@ window.App = (() => {
      · Otherwise                                   → the demo "Subscribe" button. */
   function mountPayPal(){
     const cfg = CFG();
-    if(!cfg.paypalClientId){ return; } // demo button only
     let holder = document.getElementById("paypalHolder");
     if(!holder){
       holder=document.createElement("div"); holder.id="paypalHolder"; holder.style.marginTop="12px";
@@ -619,9 +618,12 @@ window.App = (() => {
       cta.parentNode.insertBefore(holder, cta.nextSibling);
     }
     if(holder.dataset.rendered) return;
+    const msg = (text,danger)=>{ holder.innerHTML = `<p class="pp-msg" style="font-size:12.5px;text-align:center;line-height:1.6;${danger?'color:var(--danger)':'color:var(--ink-soft)'}">${text}</p>`; };
+    if(!cfg.paypalClientId){ msg("PayPal client id missing",1); return; }
+    msg("⏳ "+t("common.loading"));
 
     loadPayPalSdk(()=>{
-      if(!window.paypal){ console.warn("PayPal SDK not available"); return; }
+      if(!window.paypal){ msg("⚠️ PayPal SDK لم يُحمّل (محجوب؟)",1); return; }
       const base = apiBase();
       const planId = ()=> selectedPlan==="yearly" ? (cfg.planYearlyId) : (cfg.planMonthlyId);
       const useSubs = Boolean(planId());
@@ -631,7 +633,6 @@ window.App = (() => {
       const uid = ()=> String((Auth.user()||{}).id || "");
 
       if(useSubs){
-        // ---- recurring subscription (bound to the user via custom_id) ----
         btnCfg.createSubscription = (d,actions)=>actions.subscription.create({ plan_id: planId(), custom_id: uid() });
         btnCfg.onApprove = async (data)=>{
           if(base){
@@ -644,7 +645,6 @@ window.App = (() => {
           } else doSubscribe("subscription");
         };
       } else if(base){
-        // ---- one-time order, created & captured on the server (bound to user) ----
         btnCfg.createOrder = async ()=>{
           const r=await fetch(base+"/api/orders",{method:"POST",headers:authH(),
             body:JSON.stringify({ plan:selectedPlan })});
@@ -655,37 +655,41 @@ window.App = (() => {
           const j=await r.json(); if(j.pro) doSubscribe("order"); else toast("⚠️ "+(j.status||"error"));
         };
       } else {
-        // ---- client-only demo (no server): for sandbox testing only ----
         btnCfg.createOrder = (d,actions)=>actions.order.create({
           purchase_units:[{ amount:{ value: selectedPlan==="yearly"?(cfg.prices?.yearly||"35.88"):"4.99" }, description:"Siam Pro" }]
         });
         btnCfg.onApprove = (d,actions)=>actions.order.capture().then(()=>doSubscribe("demo"));
       }
-      btnCfg.onError = (err)=>{ console.warn("paypal error:",err); toast("⚠️ PayPal"); };
+      btnCfg.onError = (err)=>{ msg("⚠️ PayPal: "+((err&&err.message)||err),1); };
 
       try{
-        paypal.Buttons(btnCfg).render("#paypalHolder").then(()=>{
-          // real PayPal is live → hide the demo "Subscribe" button so it can't grant free Pro
+        const btns = paypal.Buttons(btnCfg);
+        if(typeof btns.isEligible === "function" && !btns.isEligible()){
+          msg("⚠️ زر PayPal غير مؤهّل — الحساب قد لا يكون مفعّلاً للاشتراكات أو القيود الجغرافية.",1);
+          return;
+        }
+        holder.innerHTML = "";
+        btns.render("#paypalHolder").then(()=>{
+          holder.dataset.rendered="1";
           const cta=document.querySelector('[data-action="subscribe"]');
-          if(cta) cta.style.display="none";
-          const note=document.querySelector('.paywall-note');
+          if(cta) cta.style.display="none";   // hide demo button so it can't grant free Pro
+          const note=document.querySelector('.paywall-sheet .paywall-note');
           if(note) note.textContent = t("paywall.secure");
-        }).catch(e=>console.warn("paypal render:",e&&e.message));
-        holder.dataset.rendered="1";
+        }).catch(e=> msg("⚠️ render: "+((e&&e.message)||e),1));
       }
-      catch(e){ console.warn("paypal render:",e.message); }
-    });
+      catch(e){ msg("⚠️ "+((e&&e.message)||e),1); }
+    }, (why)=> msg("⚠️ "+(why||"تعذّر تحميل PayPal"),1));
   }
-  function loadPayPalSdk(cb){
+  function loadPayPalSdk(cb, onerr){
     if(window.paypal) return cb();
     const cfg=CFG();
     const existing=document.getElementById("ppsdk");
-    if(existing){ existing.addEventListener("load",cb); return; }
+    if(existing){ existing.addEventListener("load",cb); existing.addEventListener("error",()=>onerr&&onerr("SDK request failed")); return; }
     const usesSubs = Boolean(cfg.planMonthlyId || cfg.planYearlyId);
     const s=document.createElement("script"); s.id="ppsdk";
     let url=`https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(cfg.paypalClientId)}&currency=${cfg.currency||"USD"}`;
     if(usesSubs) url+="&vault=true&intent=subscription";
-    s.src=url; s.onload=cb; s.onerror=()=>console.warn("PayPal SDK failed to load");
+    s.src=url; s.onload=cb; s.onerror=()=>onerr&&onerr("SDK request blocked/failed (ad-blocker or network)");
     document.head.appendChild(s);
   }
 
