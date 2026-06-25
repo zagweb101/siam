@@ -1,0 +1,14 @@
+# ===== Secrets — NEVER commit these =====
+.env
+**/.env
+server/.env
+
+# ===== Dependencies =====
+node_modules/
+**/node_modules/
+
+# ===== Misc =====
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db

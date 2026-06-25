@@ -1,0 +1,16 @@
+{
+  "name": "siam-app",
+  "version": "1.0.0",
+  "description": "Siam — intermittent fasting PWA + PayPal backend (Railway-ready)",
+  "type": "module",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node server/server.js",
+    "setup-plans": "node server/setup-plans.js",
+    "check-config": "node server/check-config.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "dotenv": "^16.4.5"
+  }
+}

@@ -1,0 +1,171 @@
+/* ============================================================
+   i18n.js — Arabic / English translations + helpers
+   ============================================================ */
+window.I18N = {
+  ar: {
+    "splash.tagline":"رفيقك الذكي للصيام المتقطع",
+    "splash.cta":"ابدأ رحلتك",
+    "splash.skip":"تصفّح بدون تسجيل",
+    "app.title":"صِيام",
+
+    "nav.home":"الرئيسية","nav.meals":"الوجبات","nav.articles":"مقالات",
+    "nav.workouts":"تمارين","nav.profile":"حسابي",
+
+    "wizard.next":"التالي","wizard.finish":"أنشئ خطتي","wizard.back":"رجوع",
+
+    // wizard steps
+    "w.name.q":"ما اسمك؟","w.name.help":"حتى نخصّص تجربتك لك","w.name.ph":"اكتب اسمك",
+    "w.gender.q":"ما جنسك؟","w.gender.help":"يساعدنا في حساب احتياجك من السعرات",
+    "w.male":"ذكر","w.female":"أنثى",
+    "w.age.q":"كم عمرك؟","w.age.help":"اسحب لاختيار عمرك","w.years":"سنة",
+    "w.body.q":"وزنك وطولك","w.body.help":"لحساب مؤشر كتلة الجسم والسعرات","w.weight":"الوزن (كجم)","w.height":"الطول (سم)",
+    "w.goal.q":"ما هدفك الأساسي؟","w.goal.help":"اختر هدفاً واحداً للبدء",
+    "w.goal.lose":"إنقاص الوزن","w.goal.lose.d":"حرق الدهون بثبات",
+    "w.goal.maintain":"الحفاظ على الوزن","w.goal.maintain.d":"توازن وصحة أفضل",
+    "w.goal.muscle":"بناء العضلات","w.goal.muscle.d":"قوة وكتلة عضلية",
+    "w.goal.health":"صحة عامة","w.goal.health.d":"طاقة وتركيز أعلى",
+    "w.exp.q":"خبرتك مع الصيام؟","w.exp.help":"سنضبط صعوبة الخطة على أساسها",
+    "w.exp.new":"مبتدئ","w.exp.new.d":"أول مرة أجرب",
+    "w.exp.some":"متوسط","w.exp.some.d":"جربت من قبل",
+    "w.exp.pro":"متقدم","w.exp.pro.d":"أصوم بانتظام",
+    "w.diet.q":"نمطك الغذائي؟","w.diet.help":"حتى نقترح وجبات تناسبك",
+    "w.diet.all":"كل شيء","w.diet.veg":"نباتي","w.diet.keto":"كيتو","w.diet.lowcarb":"قليل الكارب",
+
+    // home
+    "home.greeting":"أهلاً","home.sub":"جاهز لصيام اليوم؟",
+    "home.yourplan":"خطتك المقترحة","home.eatwindow":"نافذة الأكل","home.fastwindow":"مدة الصيام",
+    "home.calories":"سعرات يومية","home.timer.title":"مؤقّت الصيام","home.fasting":"صائم الآن","home.eating":"نافذة الأكل",
+    "home.start":"ابدأ الصيام","home.stop":"إنهاء","home.recmeals":"وجبات مقترحة لك",
+    "home.recworkouts":"تمارين اليوم","home.tips":"نصائح سريعة","home.seeall":"عرض الكل",
+    "upsell.title":"افتح كل المزايا مع Pro","upsell.sub":"وجبات أسبوعية · تمارين مصوّرة · مقالات حصرية",
+
+    // meals
+    "meals.title":"الوجبات","meals.search":"ابحث عن وجبة...",
+    "meals.all":"الكل","meals.breakfast":"فطور","meals.veg":"نباتي","meals.seafood":"بحري","meals.chicken":"دجاج","meals.dessert":"تحلية",
+    // articles
+    "articles.title":"مقالات وإرشادات","articles.search":"ابحث في المقالات...",
+    // workouts
+    "workouts.title":"التمارين","workouts.search":"ابحث عن تمرين...",
+    "wo.all":"الكل","wo.abs":"بطن","wo.chest":"صدر","wo.legs":"أرجل","wo.back":"ظهر","wo.arms":"ذراع","wo.cardio":"كارديو",
+
+    // profile
+    "profile.guest":"ضيف","profile.member":"عضو Siam",
+    "p.goal":"الهدف","p.proto":"البروتوكول","p.bmi":"كتلة الجسم",
+    "p.editplan":"تعديل خطتي","p.subscription":"الاشتراك","p.notify":"التذكيرات","p.lang":"اللغة","p.about":"عن التطبيق","p.restart":"إعادة الـ Wizard",
+    "p.free":"مجاني","p.pro":"Pro مُفعّل",
+
+    // paywall
+    "paywall.title":"اشترك في Siam Pro","paywall.sub":"افتح كل الوجبات والتمارين والمقالات الحصرية",
+    "paywall.f1":"خطط وجبات أسبوعية كاملة بالوصفات","paywall.f2":"مكتبة تمارين مصوّرة بالتفصيل",
+    "paywall.f3":"مقالات وإرشادات حصرية من الخبراء","paywall.f4":"تتبّع نافذة الصيام والتذكيرات",
+    "paywall.monthly":"شهري","paywall.yearly":"سنوي","paywall.permonth":"/شهر","paywall.save":"وفّر 40%",
+    "paywall.cta":"اشترك الآن","paywall.demo":"الدفع آمن عبر PayPal. يمكنك إلغاء الاشتراك في أي وقت.",
+    "paywall.secure":"🔒 دفع آمن عبر PayPal · يمكنك الإلغاء في أي وقت",
+
+    // misc
+    "locked.title":"محتوى حصري","locked.body":"هذا المحتوى متاح لمشتركي Pro فقط.","locked.cta":"الترقية إلى Pro",
+    "detail.ingredients":"المكوّنات","detail.steps":"طريقة التحضير","detail.muscles":"العضلات المستهدفة","detail.readmore":"المصدر الكامل",
+    "toast.subscribed":"🎉 تم تفعيل Pro! استمتع بكل المزايا","toast.unsub":"تم إلغاء الاشتراك","toast.planready":"تم إنشاء خطتك بنجاح ✅",
+    "common.min":"دقيقة","common.cal":"سعرة","common.loading":"جارٍ التحميل...",
+
+    // medical disclaimer + legal
+    "disc.title":"تنبيه صحي مهم","disc.body":"تطبيق صِيام أداة معلوماتية للعافية وليس بديلاً عن الاستشارة الطبية. استشر طبيباً مختصاً قبل بدء أي نظام صيام أو غذائي.",
+    "disc.p1":"الصيام قد لا يناسب الحوامل والمرضعات.",
+    "disc.p2":"مرضى السكري أو ضغط الدم أو من يتناولون أدوية يجب مراجعة الطبيب أولاً.",
+    "disc.p3":"غير مخصص لمن لديهم تاريخ مع اضطرابات الأكل أو لمن هم دون 18 عاماً.",
+    "disc.agree":"فهمت وأوافق على المتابعة","disc.minor":"⚠️ التطبيق مخصص لمن هم 18 عاماً فأكثر. يُرجى استشارة ولي الأمر والطبيب.",
+    "p.terms":"الشروط والأحكام","p.privacy":"سياسة الخصوصية",
+    "legal.terms.title":"الشروط والأحكام","legal.terms.body":"باستخدامك تطبيق صِيام فإنك توافق على أنه أداة معلوماتية للعافية فقط، وأنك المسؤول الوحيد عن قراراتك الصحية. الاشتراك الشهري/السنوي يُجدَّد تلقائياً ويمكن إلغاؤه في أي وقت من إعدادات حسابك في PayPal. لا نقدّم وعوداً بنتائج محددة.",
+    "legal.privacy.title":"سياسة الخصوصية","legal.privacy.body":"بياناتك (الاسم، العمر، الوزن، الطول، الهدف) تُحفظ محلياً على جهازك فقط ولا تُرسل لخوادمنا. عمليات الدفع تتم بأمان عبر PayPal ولا نطّلع على بيانات بطاقتك. يمكنك حذف بياناتك بإعادة ضبط التطبيق.",
+  },
+
+  en: {
+    "splash.tagline":"Your smart intermittent-fasting companion",
+    "splash.cta":"Start your journey",
+    "splash.skip":"Browse without signing up",
+    "app.title":"Siam",
+
+    "nav.home":"Home","nav.meals":"Meals","nav.articles":"Articles",
+    "nav.workouts":"Workouts","nav.profile":"Profile",
+
+    "wizard.next":"Next","wizard.finish":"Create my plan","wizard.back":"Back",
+
+    "w.name.q":"What's your name?","w.name.help":"So we can personalize your experience","w.name.ph":"Enter your name",
+    "w.gender.q":"What's your gender?","w.gender.help":"Helps us estimate your calorie needs",
+    "w.male":"Male","w.female":"Female",
+    "w.age.q":"How old are you?","w.age.help":"Slide to pick your age","w.years":"yrs",
+    "w.body.q":"Weight & height","w.body.help":"To compute your BMI and calories","w.weight":"Weight (kg)","w.height":"Height (cm)",
+    "w.goal.q":"What's your main goal?","w.goal.help":"Pick one to get started",
+    "w.goal.lose":"Lose weight","w.goal.lose.d":"Burn fat steadily",
+    "w.goal.maintain":"Maintain weight","w.goal.maintain.d":"Balance & wellbeing",
+    "w.goal.muscle":"Build muscle","w.goal.muscle.d":"Strength & mass",
+    "w.goal.health":"General health","w.goal.health.d":"More energy & focus",
+    "w.exp.q":"Your fasting experience?","w.exp.help":"We'll tune the plan difficulty",
+    "w.exp.new":"Beginner","w.exp.new.d":"First time trying",
+    "w.exp.some":"Intermediate","w.exp.some.d":"Tried it before",
+    "w.exp.pro":"Advanced","w.exp.pro.d":"I fast regularly",
+    "w.diet.q":"Your eating style?","w.diet.help":"So we suggest fitting meals",
+    "w.diet.all":"Everything","w.diet.veg":"Vegetarian","w.diet.keto":"Keto","w.diet.lowcarb":"Low-carb",
+
+    "home.greeting":"Hi","home.sub":"Ready for today's fast?",
+    "home.yourplan":"Your recommended plan","home.eatwindow":"Eating window","home.fastwindow":"Fasting hours",
+    "home.calories":"Daily calories","home.timer.title":"Fasting timer","home.fasting":"Fasting now","home.eating":"Eating window",
+    "home.start":"Start fasting","home.stop":"End","home.recmeals":"Meals picked for you",
+    "home.recworkouts":"Today's workouts","home.tips":"Quick tips","home.seeall":"See all",
+    "upsell.title":"Unlock everything with Pro","upsell.sub":"Weekly meals · illustrated workouts · exclusive articles",
+
+    "meals.title":"Meals","meals.search":"Search a meal...",
+    "meals.all":"All","meals.breakfast":"Breakfast","meals.veg":"Vegetarian","meals.seafood":"Seafood","meals.chicken":"Chicken","meals.dessert":"Dessert",
+    "articles.title":"Articles & guides","articles.search":"Search articles...",
+    "workouts.title":"Workouts","workouts.search":"Search an exercise...",
+    "wo.all":"All","wo.abs":"Abs","wo.chest":"Chest","wo.legs":"Legs","wo.back":"Back","wo.arms":"Arms","wo.cardio":"Cardio",
+
+    "profile.guest":"Guest","profile.member":"Siam member",
+    "p.goal":"Goal","p.proto":"Protocol","p.bmi":"BMI",
+    "p.editplan":"Edit my plan","p.subscription":"Subscription","p.notify":"Reminders","p.lang":"Language","p.about":"About","p.restart":"Restart wizard",
+    "p.free":"Free","p.pro":"Pro active",
+
+    "paywall.title":"Subscribe to Siam Pro","paywall.sub":"Unlock all meals, workouts & exclusive articles",
+    "paywall.f1":"Full weekly meal plans with recipes","paywall.f2":"Detailed illustrated workout library",
+    "paywall.f3":"Exclusive expert articles & guides","paywall.f4":"Fasting-window tracking & reminders",
+    "paywall.monthly":"Monthly","paywall.yearly":"Yearly","paywall.permonth":"/mo","paywall.save":"Save 40%",
+    "paywall.cta":"Subscribe now","paywall.demo":"Secure payment via PayPal. Cancel anytime.",
+    "paywall.secure":"🔒 Secure payment via PayPal · cancel anytime",
+
+    "locked.title":"Exclusive content","locked.body":"This content is available to Pro members only.","locked.cta":"Upgrade to Pro",
+    "detail.ingredients":"Ingredients","detail.steps":"Instructions","detail.muscles":"Target muscles","detail.readmore":"Full source",
+    "toast.subscribed":"🎉 Pro activated! Enjoy all features","toast.unsub":"Subscription cancelled","toast.planready":"Your plan was created ✅",
+    "common.min":"min","common.cal":"cal","common.loading":"Loading...",
+
+    "disc.title":"Important health notice","disc.body":"Siam is a wellness information tool, not a substitute for medical advice. Consult a qualified doctor before starting any fasting or diet program.",
+    "disc.p1":"Fasting may not suit pregnant or breastfeeding women.",
+    "disc.p2":"People with diabetes, blood-pressure issues, or on medication should check with a doctor first.",
+    "disc.p3":"Not intended for anyone with a history of eating disorders, or under 18.",
+    "disc.agree":"I understand & continue","disc.minor":"⚠️ This app is intended for ages 18+. Please consult a parent/guardian and a doctor.",
+    "p.terms":"Terms & conditions","p.privacy":"Privacy policy",
+    "legal.terms.title":"Terms & conditions","legal.terms.body":"By using Siam you agree it is a wellness information tool only and that you are solely responsible for your health decisions. Monthly/yearly subscriptions renew automatically and can be cancelled anytime from your PayPal account settings. We make no guarantee of specific results.",
+    "legal.privacy.title":"Privacy policy","legal.privacy.body":"Your data (name, age, weight, height, goal) is stored locally on your device only and is not sent to our servers. Payments are processed securely by PayPal; we never see your card details. You can erase your data by resetting the app.",
+  }
+};
+
+window.i18n = {
+  lang: "ar",
+  t(key){ return (window.I18N[this.lang] && window.I18N[this.lang][key]) || (window.I18N.ar[key]) || key; },
+  set(lang){
+    this.lang = lang;
+    const html = document.documentElement;
+    html.lang = lang;
+    html.dir = lang === "ar" ? "rtl" : "ltr";
+    this.apply();
+  },
+  toggle(){ this.set(this.lang === "ar" ? "en" : "ar"); return this.lang; },
+  apply(){
+    document.querySelectorAll("[data-i18n]").forEach(el=>{
+      el.textContent = this.t(el.getAttribute("data-i18n"));
+    });
+    document.querySelectorAll("[data-i18n-ph]").forEach(el=>{
+      el.placeholder = this.t(el.getAttribute("data-i18n-ph"));
+    });
+    document.querySelectorAll(".lang-toggle").forEach(b=> b.textContent = this.lang === "ar" ? "EN" : "ع");
+  }
+};

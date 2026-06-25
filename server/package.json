@@ -1,0 +1,16 @@
+{
+  "name": "siam-server",
+  "version": "1.0.0",
+  "description": "Siam — PayPal payment & subscription backend (secret stays server-side)",
+  "type": "module",
+  "main": "server.js",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node server.js",
+    "setup-plans": "node setup-plans.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "dotenv": "^16.4.5"
+  }
+}
