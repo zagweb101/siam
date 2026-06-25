@@ -99,11 +99,16 @@ window.App = (() => {
       case "open-paywall": openPaywall(); break;
       case "close-paywall": closePaywall(); break;
       case "close-modal": closeModal(); break;
-      case "subscribe": doSubscribe(); break;
+      case "subscribe":
+        // demo-only path. In real (PayPal) mode the yellow PayPal button is the
+        // only way to unlock Pro — never grant it for free here.
+        if((CFG().paypalClientId)) toast(t("paywall.usebtn"));
+        else doSubscribe("demo");
+        break;
       case "toggle-fast": toggleFast(); break;
-      case "restart-wizard": Store.reset(); i18n.set("ar"); showScreen("splash"); break;
+      case "restart-wizard": Wizard.start(); break;   // re-edit plan, keeps account & Pro
       case "manage-sub":
-        if(Store.get().pro){ Store.set({pro:false}); updateProBadge(); rerenderCurrent(); toast(t("toast.unsub")); }
+        if(Store.get().pro){ toast(t("sub.manageInfo")); }
         else openPaywall();
         break;
     }

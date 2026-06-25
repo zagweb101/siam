@@ -61,6 +61,8 @@ window.I18N = {
     "paywall.monthly":"شهري","paywall.yearly":"سنوي","paywall.permonth":"/شهر","paywall.save":"وفّر 40%",
     "paywall.cta":"اشترك الآن","paywall.demo":"الدفع آمن عبر PayPal. يمكنك إلغاء الاشتراك في أي وقت.",
     "paywall.secure":"🔒 دفع آمن عبر PayPal · يمكنك الإلغاء في أي وقت",
+    "paywall.usebtn":"من فضلك أكمل الدفع عبر زر PayPal بالأعلى",
+    "sub.manageInfo":"لإلغاء أو إدارة اشتراكك، ادخل إعدادات حسابك في PayPal.",
 
     // misc
     "locked.title":"محتوى حصري","locked.body":"هذا المحتوى متاح لمشتركي Pro فقط.","locked.cta":"الترقية إلى Pro",
@@ -141,6 +143,8 @@ window.I18N = {
     "paywall.monthly":"Monthly","paywall.yearly":"Yearly","paywall.permonth":"/mo","paywall.save":"Save 40%",
     "paywall.cta":"Subscribe now","paywall.demo":"Secure payment via PayPal. Cancel anytime.",
     "paywall.secure":"🔒 Secure payment via PayPal · cancel anytime",
+    "paywall.usebtn":"Please complete payment with the PayPal button above",
+    "sub.manageInfo":"To cancel or manage your subscription, open your PayPal account settings.",
 
     "locked.title":"Exclusive content","locked.body":"This content is available to Pro members only.","locked.cta":"Upgrade to Pro",
     "detail.ingredients":"Ingredients","detail.steps":"Instructions","detail.muscles":"Target muscles","detail.readmore":"Full source",

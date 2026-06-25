@@ -115,6 +115,7 @@ window.Wizard = (() => {
   }
   function back(){
     if(step > 0){ step--; render(); }
+    else if(Store.get().onboarded) App.enterApp();   // editing plan → back to app
     else App.showScreen("splash");
   }
 
