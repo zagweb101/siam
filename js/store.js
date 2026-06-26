@@ -13,7 +13,8 @@ window.Store = (() => {
     plan:null,
     fast:{ active:false, startTs:null },
     stats:{ completed:0, streak:0, best:0, lastDay:null },
-    sub:null
+    sub:null,
+    notify:false
   };
 
   let state = load();

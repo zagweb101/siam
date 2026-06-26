@@ -64,6 +64,7 @@ window.App = (() => {
       if(["home","meals","articles","workouts","profile"].includes(q)) tab = q;
     }catch(e){}
     switchTab(tab);
+    scheduleBreakNotif();   // re-arm break-fast reminder if a fast is in progress
   }
 
   /* ---------------- events ---------------- */
@@ -122,6 +123,7 @@ window.App = (() => {
         break;
       }
       case "toggle-fast": toggleFast(); break;
+      case "toggle-notify": toggleNotify(); break;
       case "restart-wizard": Wizard.start(); break;   // re-edit plan, keeps account & Pro
       case "manage-sub":
         if(Store.get().pro){ toast(t("sub.manageInfo")); }
@@ -219,7 +221,7 @@ window.App = (() => {
 
     // load meals + workouts (Pro only — these are the gated "plan")
     if(isPro){
-      API.meals(p.mealCat).then(list=>{
+      API.meals(p.mealCat, L()).then(list=>{
         cache.meals[p.mealCat]=list;
         const box=document.getElementById("homeMeals"); if(box) box.innerHTML = list.slice(0,6).map(mealCard).join("");
         bindCards(box,"meal");
@@ -242,12 +244,14 @@ window.App = (() => {
   }
 
   function timerCard(){
+    const active = Store.get().fast.active;
     return `<div class="timer-card">
       <div class="sec-head" style="margin:0 0 6px"><h3>${t("home.timer.title")}</h3></div>
       <div class="timer-ring" id="timerRing"></div>
+      <div class="break-info" id="breakInfo"></div>
       <div class="timer-actions">
-        <button class="btn ${Store.get().fast.active?'btn-outline':'btn-primary'}" data-action="toggle-fast" id="fastBtn">
-          ${Store.get().fast.active? t("home.stop") : t("home.start")}
+        <button class="btn ${active?'btn-outline':'btn-primary'} ${active?'':'btn-pulse'}" data-action="toggle-fast" id="fastBtn">
+          ${active? t("home.stop") : t("home.start")}
         </button>
       </div>
     </div>`;
@@ -263,26 +267,40 @@ window.App = (() => {
     if(!ring){ if(timerInt) clearInterval(timerInt); return; }
     const st = Store.get(), p = st.plan;
     const totalFast = p.fast*3600;
-    let elapsed=0, pct=0, label=t("home.fasting"), timeStr="00:00:00";
+    const breakBox = document.getElementById("breakInfo");
+    let pct=0, timeStr="00:00:00", label=t("home.start"), reached=false;
+
     if(st.fast.active && st.fast.startTs){
-      elapsed = Math.floor((Date.now()-st.fast.startTs)/1000);
-      pct = Math.min(1, elapsed/totalFast);
-      timeStr = hms(elapsed);
+      const elapsed = Math.floor((Date.now()-st.fast.startTs)/1000);
+      const remaining = totalFast - elapsed;
+      const breakClock = fmtClock(st.fast.startTs + totalFast*1000);
+      if(remaining > 0){
+        pct = Math.min(1, elapsed/totalFast);
+        timeStr = hms(remaining);                                   // ← time left until you can eat
+        label = `${t("home.untilbreak")} · ${Math.round(pct*100)}%`;
+        if(breakBox) breakBox.innerHTML = `🍽️ ${t("home.breakat")} <b>${breakClock}</b>`;
+      } else {
+        pct = 1; reached = true; timeStr = "🎉"; label = t("home.canbreak");
+        if(breakBox) breakBox.innerHTML = `🎉 <b>${t("home.canbreak")}</b>`;
+        maybeCelebrateBreak(st.fast.startTs);
+      }
     } else {
-      label = t("home.eating"); timeStr = hms(0); pct=0;
+      timeStr = "00:00:00"; label = t("home.eating");
+      if(breakBox) breakBox.innerHTML = `<span class="bi-muted">${t("home.eatnow")}</span>`;
     }
+
     const r=70, c=2*Math.PI*r, off=c*(1-pct);
     ring.innerHTML = `
       <svg width="170" height="170" viewBox="0 0 170 170">
         <circle cx="85" cy="85" r="${r}" fill="none" stroke="#e6efe9" stroke-width="13"/>
         <circle cx="85" cy="85" r="${r}" fill="none" stroke="url(#g)" stroke-width="13" stroke-linecap="round"
-          stroke-dasharray="${c}" stroke-dashoffset="${off}"/>
+          stroke-dasharray="${c}" stroke-dashoffset="${off}" style="transition:stroke-dashoffset .5s var(--ease,linear)"/>
         <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stop-color="#16b377"/><stop offset="1" stop-color="#0a7a52"/></linearGradient></defs>
+          <stop offset="0" stop-color="${reached?'#f5a623':'#16b377'}"/><stop offset="1" stop-color="${reached?'#f5732a':'#0a7a52'}"/></linearGradient></defs>
       </svg>
       <div class="tr-center">
-        <div class="tr-time">${timeStr}</div>
-        <div class="tr-state">${label}${st.fast.active?` · ${Math.round(pct*100)}%`:""}</div>
+        <div class="tr-time ${reached?'tr-celebrate':''}">${timeStr}</div>
+        <div class="tr-state">${label}</div>
       </div>`;
   }
   function toggleFast(){
@@ -291,16 +309,68 @@ window.App = (() => {
       // ending a fast → log it for streak/stats, then refresh the home view
       const elapsed = st.fast.startTs ? Math.floor((Date.now()-st.fast.startTs)/1000) : 0;
       Store.set({ fast:{active:false,startTs:null} });
+      clearBreakNotif();
       const rec = Store.recordFast(elapsed);
-      if(rec) toast(t("toast.fastlogged"));
+      if(rec){ toast(t("toast.fastlogged")); celebrate(); }
       if(App.syncToCloud) App.syncToCloud();
       if(currentTab==="home") renderHome(); else drawTimer();
       return;
     }
     Store.set({ fast:{active:true,startTs:Date.now()} });
-    const btn=document.getElementById("fastBtn");
-    if(btn){ btn.textContent=t("home.stop"); btn.className="btn btn-outline"; }
-    drawTimer();
+    _celebratedFor = null;
+    scheduleBreakNotif();          // schedule the break-fast reminder
+    if(currentTab==="home") renderHome(); else drawTimer();
+  }
+
+  /* ---------- celebration + notifications ---------- */
+  function celebrate(){
+    const colors=['#16b377','#f5a623','#ef5d60','#3b82f6','#a855f7','#f59e0b','#10b981'];
+    const host=document.querySelector('.app')||document.body;
+    for(let i=0;i<30;i++){
+      const c=document.createElement('div');
+      c.className='confetti';
+      c.style.left=Math.random()*100+'%';
+      c.style.background=colors[i%colors.length];
+      c.style.animationDelay=(Math.random()*0.35)+'s';
+      c.style.width=(6+Math.random()*6)+'px';
+      host.appendChild(c);
+      setTimeout(()=>c.remove(), 2400);
+    }
+  }
+  let _celebratedFor = null;
+  function maybeCelebrateBreak(startTs){
+    if(_celebratedFor===startTs) return;
+    _celebratedFor=startTs;
+    celebrate();
+    showNotif(t("notify.breakTitle"), t("notify.breakBody"));
+  }
+  function notifyEnabled(){ return !!Store.get().notify && ("Notification" in window) && Notification.permission==="granted"; }
+  function showNotif(title, body){
+    if(!notifyEnabled()) return;
+    try{
+      if(navigator.serviceWorker && navigator.serviceWorker.ready){
+        navigator.serviceWorker.ready.then(reg=>reg.showNotification(title,{ body, icon:"icons/icon-192.png", badge:"icons/icon-192.png", lang:L(), dir:L()==="ar"?"rtl":"ltr" }))
+          .catch(()=>{ try{ new Notification(title,{body}); }catch(e){} });
+      } else { new Notification(title,{body}); }
+    }catch(e){}
+  }
+  let _breakTimer=null;
+  function clearBreakNotif(){ if(_breakTimer){ clearTimeout(_breakTimer); _breakTimer=null; } }
+  function scheduleBreakNotif(){
+    clearBreakNotif();
+    const st=Store.get();
+    if(!notifyEnabled() || !st.fast.active || !st.fast.startTs || !st.plan) return;
+    const ms = (st.fast.startTs + st.plan.fast*3600*1000) - Date.now();
+    if(ms>0 && ms < 24*3600*1000) _breakTimer=setTimeout(()=>showNotif(t("notify.breakTitle"), t("notify.breakBody")), ms);
+  }
+  async function toggleNotify(){
+    if(Store.get().notify){ Store.set({ notify:false }); clearBreakNotif(); toast(t("notify.off")); rerenderCurrent(); return; }
+    if(!("Notification" in window)){ toast(t("notify.denied")); return; }
+    let perm = Notification.permission;
+    if(perm!=="granted") perm = await Notification.requestPermission();
+    if(perm==="granted"){ Store.set({ notify:true }); toast(t("notify.on")); scheduleBreakNotif(); }
+    else toast(t("notify.denied"));
+    rerenderCurrent();
   }
 
   /* ============================================================
@@ -354,7 +424,7 @@ window.App = (() => {
   function loadMealGrid(cat){
     const grid=document.getElementById("mealGrid"); if(!grid) return;
     grid.innerHTML=skelCards(4);
-    API.meals(cat).then(list=>{
+    API.meals(cat, L()).then(list=>{
       cache.meals[cat]=list;
       grid.innerHTML = list.map(mealCard).join("");
       bindCards(grid,"meal");
@@ -474,6 +544,7 @@ window.App = (() => {
           ? `<div class="list-item" data-action="logout"><span class="li-ico">🚪</span><span>${t("auth.logout")}</span><span class="li-arrow">${arrow}</span></div>`
           : `<div class="list-item" data-action="open-auth"><span class="li-ico">👤</span><span>${t("auth.login")} / ${t("auth.register")}</span><span class="li-arrow">${arrow}</span></div>`}
         <div class="list-item" data-action="restart-wizard"><span class="li-ico">✏️</span><span>${t("p.editplan")}</span><span class="li-arrow">${arrow}</span></div>
+        <div class="list-item" data-action="toggle-notify"><span class="li-ico">🔔</span><span>${t("notify.title")}</span><span class="li-arrow" style="color:${st.notify?'var(--green-600)':'var(--ink-soft)'}">${st.notify?'●':'○'}</span></div>
         <div class="list-item" data-action="toggle-lang"><span class="li-ico">🌐</span><span>${t("p.lang")}</span><span class="li-arrow">${L()==='ar'?'العربية':'English'}</span></div>
       </div>
       <div class="list-group">
@@ -895,6 +966,7 @@ window.App = (() => {
   function skelLines(n){ return Array(n).fill('<div class="skel skel-line"></div>').join(""); }
   function fmtWindow(s,e){ const f=h=>String(((h%24)+24)%24).padStart(2,"0")+":00"; return f(s)+"–"+f(e); }
   function fmtDate(iso){ if(!iso) return "—"; try{ return new Date(iso).toLocaleDateString(L()==="ar"?"ar-EG":"en-GB",{year:"numeric",month:"short",day:"numeric"}); }catch(e){ return "—"; } }
+  function fmtClock(ts){ try{ return new Date(ts).toLocaleTimeString(L()==="ar"?"ar-EG":"en-GB",{hour:"2-digit",minute:"2-digit"}); }catch(e){ const d=new Date(ts); return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); } }
   function hms(sec){ const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=sec%60; return [h,m,s].map(x=>String(x).padStart(2,"0")).join(":"); }
   function tipOfDay(){ const tips=DATA.tips; const idx=new Date().getDate()%tips.length; return L()==="ar"?tips[idx].ar:tips[idx].en; }
   function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }

@@ -21,7 +21,15 @@ window.API = (() => {
   }
 
   /* ---------------- MEALS ---------------- */
-  async function meals(category){
+  async function meals(category, lang){
+    // Arabic users get fully-Arabic curated meals (names + recipes)
+    if(lang === "ar"){
+      const all = DATA.mealsAr || [];
+      const filtered = (category && category !== "all") ? all.filter(m=>m.cat===category) : all;
+      return (filtered.length ? filtered : all).map(m=>({
+        id:m.id, title:m.title, title_ar:m.title_ar, img:m.img, cat:m.cat, area:m.area, free:m.free
+      }));
+    }
     try{
       const cat = category && category !== "all" ? category : "Vegetarian";
       const data = await jget(`${MEALDB}/filter.php?c=${encodeURIComponent(cat)}`);
@@ -39,6 +47,12 @@ window.API = (() => {
   }
 
   async function mealDetail(id){
+    // curated Arabic meal → return its Arabic recipe directly (no network)
+    if(String(id).startsWith("ar-")){
+      const m = (DATA.mealsAr || []).find(x=>x.id===id);
+      return m ? { id:m.id, title:m.title_ar, img:m.img, area:m.area, category:m.cat,
+        instructions:m.steps, ingredients:m.ingredients, youtube:"", source:"" } : null;
+    }
     try{
       const data = await jget(`${MEALDB}/lookup.php?i=${id}`);
       const m = data.meals && data.meals[0];

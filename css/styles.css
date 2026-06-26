@@ -397,6 +397,25 @@ img,svg,video{max-width:100%;height:auto}
 .pro-gate .btn{max-width:340px;margin-inline:auto}
 .pro-gate .paywall-note{margin-top:12px}
 
+/* break-fast info line under the timer ring */
+.break-info{text-align:center;font-size:14px;color:var(--green-700);margin:2px 0 12px;min-height:18px}
+.break-info b{font-weight:600}
+.break-info .bi-muted{color:var(--ink-soft);font-weight:400}
+.tr-celebrate{font-size:42px!important;animation:pop .5s var(--ease)}
+@keyframes pop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.25)}100%{transform:scale(1);opacity:1}}
+
+/* cheerful accents on the home stats (flame=orange, trophy=gold) */
+.stats-card .stat-box:nth-child(1) b{color:#f5732a}
+.stats-card .stat-box:nth-child(3) b{color:#f5a623}
+
+/* gentle invite pulse on the start-fast button */
+.btn-pulse{animation:btnPulse 2.6s var(--ease) infinite}
+@keyframes btnPulse{0%,100%{box-shadow:0 8px 20px rgba(15,157,107,.35)}50%{box-shadow:0 12px 32px rgba(15,157,107,.6)}}
+
+/* confetti celebration (fast completed / break-fast reached) */
+.confetti{position:absolute;top:-14px;height:14px;border-radius:2px;z-index:95;pointer-events:none;opacity:.95;animation:confettiFall 2s var(--ease) forwards}
+@keyframes confettiFall{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(112vh) rotate(640deg);opacity:.12}}
+
 /* animations — soft & smooth */
 @keyframes fade{from{opacity:0}to{opacity:1}}
 @keyframes slideUp{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
