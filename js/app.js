@@ -207,6 +207,8 @@ window.App = (() => {
 
       ${statsCard()}
 
+      ${stagesCard()}
+
       ${upsell}
       ${recSections}
 
@@ -241,6 +243,27 @@ window.App = (() => {
       <div class="stat-box"><b>✅ ${s.completed||0}</b><span>${t("home.completed")}</span></div>
       <div class="stat-box"><b>🏆 ${s.best||0}</b><span>${t("home.best")}</span></div>
     </div>`;
+  }
+
+  /* 🧬 What's happening in the body across the fast (free for everyone) */
+  function stagesCard(){
+    const st = Store.get();
+    const stages = DATA.fastStages || [];
+    const elapsedH = (st.fast.active && st.fast.startTs) ? (Date.now()-st.fast.startTs)/3600000 : -1;
+    let curIdx = -1;
+    if(elapsedH>=0){ for(let i=0;i<stages.length;i++){ if(stages[i].h<=elapsedH) curIdx=i; } }
+    const rows = stages.map((s,i)=>{
+      const state = curIdx<0 ? "next" : (i<curIdx ? "done" : (i===curIdx ? "now" : "next"));
+      const title = L()==="ar"?s.ar:s.en, desc = L()==="ar"?s.ar_d:s.en_d;
+      const badge = state==="now" ? `<span class="stg-badge">${t("home.stageNow")}</span>` : "";
+      return `<div class="stg stg-${state}">
+        <div class="stg-rail"><span class="stg-dot">${state==="done"?"✓":s.ico}</span></div>
+        <div class="stg-body"><div class="stg-h">${s.h}h · ${esc(title)} ${badge}</div>
+          <div class="stg-d">${esc(desc)}</div></div>
+      </div>`;
+    }).join("");
+    return `<div class="sec-head"><h3>${t("home.stages")}</h3></div>
+      <div class="stages-card">${rows}<p class="stages-note">ⓘ ${t("home.stagesNote")}</p></div>`;
   }
 
   function timerCard(){
@@ -325,16 +348,19 @@ window.App = (() => {
   /* ---------- celebration + notifications ---------- */
   function celebrate(){
     const colors=['#16b377','#f5a623','#ef5d60','#3b82f6','#a855f7','#f59e0b','#10b981'];
+    // polished celebration via canvas-confetti (self-hosted); DOM fallback if absent
+    if(typeof window.confetti==="function"){
+      const burst=(x)=>window.confetti({ particleCount:70, spread:70, startVelocity:45, origin:{x, y:0.7}, colors, disableForReducedMotion:true });
+      burst(0.3); setTimeout(()=>burst(0.7), 180); setTimeout(()=>window.confetti({particleCount:50,spread:100,origin:{y:0.6},colors,disableForReducedMotion:true}), 360);
+      return;
+    }
     const host=document.querySelector('.app')||document.body;
     for(let i=0;i<30;i++){
       const c=document.createElement('div');
-      c.className='confetti';
-      c.style.left=Math.random()*100+'%';
-      c.style.background=colors[i%colors.length];
-      c.style.animationDelay=(Math.random()*0.35)+'s';
+      c.className='confetti'; c.style.left=Math.random()*100+'%';
+      c.style.background=colors[i%colors.length]; c.style.animationDelay=(Math.random()*0.35)+'s';
       c.style.width=(6+Math.random()*6)+'px';
-      host.appendChild(c);
-      setTimeout(()=>c.remove(), 2400);
+      host.appendChild(c); setTimeout(()=>c.remove(), 2400);
     }
   }
   let _celebratedFor = null;
@@ -965,8 +991,12 @@ window.App = (() => {
   function skelCards(n){ return Array(n).fill('<div class="skel skel-card"></div>').join(""); }
   function skelLines(n){ return Array(n).fill('<div class="skel skel-line"></div>').join(""); }
   function fmtWindow(s,e){ const f=h=>String(((h%24)+24)%24).padStart(2,"0")+":00"; return f(s)+"–"+f(e); }
-  function fmtDate(iso){ if(!iso) return "—"; try{ return new Date(iso).toLocaleDateString(L()==="ar"?"ar-EG":"en-GB",{year:"numeric",month:"short",day:"numeric"}); }catch(e){ return "—"; } }
-  function fmtClock(ts){ try{ return new Date(ts).toLocaleTimeString(L()==="ar"?"ar-EG":"en-GB",{hour:"2-digit",minute:"2-digit"}); }catch(e){ const d=new Date(ts); return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); } }
+  function fmtDate(iso){ if(!iso) return "—";
+    try{ if(window.dayjs) return dayjs(iso).locale(L()==="ar"?"ar":"en").format("D MMM YYYY"); }catch(e){}
+    try{ return new Date(iso).toLocaleDateString(L()==="ar"?"ar-EG":"en-GB",{year:"numeric",month:"short",day:"numeric"}); }catch(e){ return "—"; } }
+  function fmtClock(ts){
+    try{ if(window.dayjs) return dayjs(ts).locale(L()==="ar"?"ar":"en").format("h:mm A"); }catch(e){}
+    try{ return new Date(ts).toLocaleTimeString(L()==="ar"?"ar-EG":"en-GB",{hour:"2-digit",minute:"2-digit"}); }catch(e){ const d=new Date(ts); return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); } }
   function hms(sec){ const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=sec%60; return [h,m,s].map(x=>String(x).padStart(2,"0")).join(":"); }
   function tipOfDay(){ const tips=DATA.tips; const idx=new Date().getDate()%tips.length; return L()==="ar"?tips[idx].ar:tips[idx].en; }
   function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }

@@ -19,6 +19,35 @@ window.DATA = {
       desc_en:"The Warrior Diet: a 4-hour eating window only. Very advanced." },
   },
 
+  /* What happens in the body across the fast (informational, not medical advice).
+     Each stage activates once elapsed fasting hours reach `h`. */
+  fastStages: [
+    { h:0,  ico:"🍽️", ar:"بداية الصيام", en:"Fast begins",
+      ar_d:"انتهت نافذة الأكل وبدأت رحلة الصيام. يبدأ جسمك بهضم آخر وجبة.",
+      en_d:"Your eating window has closed. The body starts digesting your last meal." },
+    { h:4,  ico:"🩸", ar:"استقرار سكر الدم", en:"Blood sugar settles",
+      ar_d:"ينخفض سكر الدم تدريجياً ويبدأ الجسم باستخدام مخزون الطاقة (الجليكوجين).",
+      en_d:"Blood sugar gently drops; the body taps into stored energy (glycogen)." },
+    { h:8,  ico:"🔋", ar:"نفاد المخزون", en:"Glycogen draining",
+      ar_d:"يقترب مخزون الطاقة من النفاد، فيبدأ الجسم بالتحوّل نحو حرق الدهون.",
+      en_d:"Glycogen runs low, so the body begins shifting toward burning fat." },
+    { h:12, ico:"🔥", ar:"بدء حرق الدهون", en:"Fat burning starts",
+      ar_d:"يدخل الجسم حالة كيتونية خفيفة ويبدأ حرق الدهون كمصدر رئيسي للطاقة.",
+      en_d:"A light ketosis begins; fat becomes a primary fuel source." },
+    { h:14, ico:"⚡", ar:"طاقة وتركيز", en:"Energy & focus",
+      ar_d:"تثبت الطاقة وكثيرون يشعرون بصفاء ذهني وتركيز أعلى.",
+      en_d:"Energy stabilises and many feel clearer, sharper focus." },
+    { h:16, ico:"🧬", ar:"الالتهام الذاتي", en:"Autophagy",
+      ar_d:"يبدأ الالتهام الذاتي (الأوتوفاجي): تنظيف الخلايا التالفة وإعادة تدويرها.",
+      en_d:"Autophagy kicks in: cells start clearing and recycling damaged parts." },
+    { h:18, ico:"🌿", ar:"أوتوفاجي أعمق", en:"Deeper autophagy",
+      ar_d:"تتسارع عمليات التجديد الخلوي وتزداد فوائد التنظيف الداخلي.",
+      en_d:"Cellular renewal accelerates and the internal clean-up deepens." },
+    { h:24, ico:"♻️", ar:"تجديد شامل", en:"Full renewal",
+      ar_d:"ذروة فوائد الصيام الممتد — مخصّص للمتقدمين وتحت إشراف فقط.",
+      en_d:"Peak benefits of extended fasting — for advanced users with guidance only." },
+  ],
+
   /* Quick tips (rotating on home) */
   tips: [
     { ar:"اشرب الماء بكثرة أثناء الصيام — يقلّل الجوع ويحافظ على طاقتك.", en:"Drink plenty of water while fasting — it curbs hunger and keeps energy up." },

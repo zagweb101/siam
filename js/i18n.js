@@ -39,6 +39,7 @@ window.I18N = {
     "home.recworkouts":"تمارين اليوم","home.tips":"نصائح سريعة","home.seeall":"عرض الكل",
     "home.streak":"سلسلة الأيام","home.completed":"صيامات مكتملة","home.best":"أطول سلسلة",
     "home.untilbreak":"متبقٍ على الإفطار","home.canbreak":"حان موعد الإفطار 🎉","home.breakat":"موعد الإفطار","home.eatnow":"أنت في نافذة الأكل — اضغط لبدء صيامك",
+    "home.stages":"رحلة جسمك أثناء الصيام","home.stagesNote":"معلومات للعافية — ليست نصيحة طبية.","home.stageNow":"الآن","home.upcoming":"قادم",
     "notify.title":"تذكير الإفطار","notify.on":"تم تفعيل التذكيرات 🔔","notify.off":"تم إيقاف التذكيرات","notify.denied":"الإشعارات محظورة من إعدادات المتصفح","notify.breakTitle":"🎉 حان موعد الإفطار","notify.breakBody":"أكملت صيامك بنجاح — افتح نافذة الأكل بصحة وعافية.",
     "upsell.title":"افتح كل المزايا مع Pro","upsell.sub":"وجبات أسبوعية · تمارين مصوّرة · مقالات حصرية",
 
@@ -138,6 +139,7 @@ window.I18N = {
     "home.recworkouts":"Today's workouts","home.tips":"Quick tips","home.seeall":"See all",
     "home.streak":"Day streak","home.completed":"Fasts completed","home.best":"Best streak",
     "home.untilbreak":"Until you can eat","home.canbreak":"Time to break your fast 🎉","home.breakat":"Break fast at","home.eatnow":"You're in your eating window — tap to start a fast",
+    "home.stages":"Your body through the fast","home.stagesNote":"Wellness info — not medical advice.","home.stageNow":"Now","home.upcoming":"Upcoming",
     "notify.title":"Break-fast reminder","notify.on":"Reminders on 🔔","notify.off":"Reminders off","notify.denied":"Notifications are blocked in browser settings","notify.breakTitle":"🎉 Time to break your fast","notify.breakBody":"You completed your fast — enjoy your eating window.",
     "upsell.title":"Unlock everything with Pro","upsell.sub":"Weekly meals · illustrated workouts · exclusive articles",
 

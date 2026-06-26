@@ -416,6 +416,24 @@ img,svg,video{max-width:100%;height:auto}
 .confetti{position:absolute;top:-14px;height:14px;border-radius:2px;z-index:95;pointer-events:none;opacity:.95;animation:confettiFall 2s var(--ease) forwards}
 @keyframes confettiFall{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(112vh) rotate(640deg);opacity:.12}}
 
+/* 🧬 fasting body-stages timeline */
+.stages-card{background:#fff;border-radius:var(--radius);padding:16px 16px 6px;box-shadow:var(--shadow-sm);margin-bottom:18px}
+.stg{display:flex;gap:12px;position:relative;padding-bottom:14px}
+.stg-rail{position:relative;flex:0 0 34px;display:flex;justify-content:center}
+.stg-rail::before{content:"";position:absolute;top:32px;bottom:-2px;width:2px;background:var(--line)}
+.stg:last-of-type .stg-rail::before{display:none}
+.stg-dot{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:16px;background:var(--mint);border:2px solid var(--line);z-index:1}
+.stg-body{flex:1;padding-top:4px;min-width:0}
+.stg-h{font-weight:600;font-size:14.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.stg-d{font-size:12.5px;color:var(--ink-soft);line-height:1.65;margin-top:3px}
+.stg-badge{background:var(--green-600);color:#fff;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:99px}
+.stg-done .stg-dot{background:var(--green-100);border-color:var(--green-300);color:var(--green-700)}
+.stg-now .stg-dot{background:var(--green-600);border-color:var(--green-600);color:#fff;animation:stgPulse 2.2s var(--ease) infinite}
+.stg-now .stg-h{color:var(--green-700)}
+.stg-next{opacity:.5}
+@keyframes stgPulse{0%,100%{box-shadow:0 0 0 3px var(--green-100)}50%{box-shadow:0 0 0 7px rgba(15,157,107,.14)}}
+.stages-note{font-size:11px;color:var(--ink-soft);text-align:center;margin:8px 0 4px}
+
 /* animations — soft & smooth */
 @keyframes fade{from{opacity:0}to{opacity:1}}
 @keyframes slideUp{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
