@@ -1,7 +1,7 @@
 /* ============================================================
    service-worker.js — offline app shell (PWA)
    ============================================================ */
-const CACHE = "siam-v12";
+const CACHE = "siam-v13";
 const SHELL = [
   "./",
   "./index.html",

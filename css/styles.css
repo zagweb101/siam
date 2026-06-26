@@ -434,6 +434,16 @@ img,svg,video{max-width:100%;height:auto}
 @keyframes stgPulse{0%,100%{box-shadow:0 0 0 3px var(--green-100)}50%{box-shadow:0 0 0 7px rgba(15,157,107,.14)}}
 .stages-note{font-size:11px;color:var(--ink-soft);text-align:center;margin:8px 0 4px}
 
+/* 🌙 Ramadan countdown card */
+.ramadan-card{background:linear-gradient(140deg,#0a7a52,#064e3b);color:#fff;border-radius:var(--radius);padding:18px;margin-bottom:18px;text-align:center;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.ramadan-card::after{content:"🌙";position:absolute;font-size:90px;opacity:.08;inset-inline-end:8px;top:-6px}
+.ramadan-card .rc-greet{font-size:17px;font-weight:600;margin-bottom:6px}
+.rc-count .rc-label{font-size:12px;opacity:.85}
+.rc-count .rc-time{font-size:32px;font-weight:600;letter-spacing:1px;font-variant-numeric:tabular-nums}
+.ramadan-card .rc-times{display:flex;justify-content:center;gap:30px;margin-top:12px;position:relative;z-index:1}
+.ramadan-card .rc-times b{display:block;font-size:18px;font-weight:600}
+.ramadan-card .rc-times span{font-size:12px;opacity:.85}
+
 /* animations — soft & smooth */
 @keyframes fade{from{opacity:0}to{opacity:1}}
 @keyframes slideUp{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}

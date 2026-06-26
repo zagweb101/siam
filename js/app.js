@@ -124,6 +124,10 @@ window.App = (() => {
       }
       case "toggle-fast": toggleFast(); break;
       case "toggle-notify": toggleNotify(); break;
+      case "manage-ramadan": showRamadan(); break;
+      case "save-ramadan": saveRamadan(); break;
+      case "off-ramadan": offRamadan(); break;
+      case "share-card": shareAchievement(); break;
       case "restart-wizard": Wizard.start(); break;   // re-edit plan, keeps account & Pro
       case "manage-sub":
         if(Store.get().pro){ toast(t("sub.manageInfo")); }
@@ -187,6 +191,8 @@ window.App = (() => {
         <h2>${t("home.greeting")}, ${esc(name)} 👋</h2>
         <p>${t("home.sub")}</p>
       </div>
+
+      ${(st.ramadan && st.ramadan.on) ? ramadanCard() : ""}
 
       <div class="plan-hero">
         <div class="ph-top">
@@ -325,6 +331,7 @@ window.App = (() => {
         <div class="tr-time ${reached?'tr-celebrate':''}">${timeStr}</div>
         <div class="tr-state">${label}</div>
       </div>`;
+    drawRamadan();
   }
   function toggleFast(){
     const st=Store.get();
@@ -397,6 +404,90 @@ window.App = (() => {
     if(perm==="granted"){ Store.set({ notify:true }); toast(t("notify.on")); scheduleBreakNotif(); }
     else toast(t("notify.denied"));
     rerenderCurrent();
+  }
+
+  /* ---------- 🌙 Ramadan mode (manual iftar/suhoor times) ---------- */
+  function ramadanCard(){
+    const r = Store.get().ramadan || {};
+    return `<div class="ramadan-card">
+      <div class="rc-greet">🌙 ${t("ram.greeting")}</div>
+      <div id="ramadanCountdown" class="rc-count"></div>
+      <div class="rc-times">
+        <div><b>${r.iftar||"18:00"}</b><span>${t("ram.iftar")}</span></div>
+        <div><b>${r.suhoor||"04:00"}</b><span>${t("ram.suhoor")}</span></div>
+      </div>
+    </div>`;
+  }
+  function drawRamadan(){
+    const box=document.getElementById("ramadanCountdown"); if(!box) return;
+    const r=Store.get().ramadan; if(!r||!r.on) return;
+    const now=new Date();
+    const mk=(hhmm)=>{ const [h,m]=(hhmm||"0:0").split(":").map(Number); const d=new Date(now); d.setHours(h,m||0,0,0); return d; };
+    let target, labelKey;
+    const iftar=mk(r.iftar);
+    if(now < iftar){ target=iftar; labelKey="ram.toIftar"; }
+    else { target=mk(r.suhoor); if(target<=now) target=new Date(target.getTime()+86400000); labelKey="ram.toSuhoor"; }
+    const secs=Math.max(0, Math.floor((target-now)/1000));
+    box.innerHTML=`<div class="rc-label">${t(labelKey)}</div><div class="rc-time">${hms(secs)}</div>`;
+  }
+  function showRamadan(){
+    const r=Store.get().ramadan||{};
+    fillModal(`
+      <div class="detail-body" style="padding:26px 22px 30px">
+        <button class="icon-btn close-x" data-action="close-modal" style="position:static;float:${L()==='ar'?'left':'right'}">×</button>
+        <div style="text-align:center;font-size:42px">🌙</div>
+        <h4 style="text-align:center;font-size:20px">${t("ram.title")}</h4>
+        <p class="paywall-note" style="text-align:center;margin-bottom:14px">${t("ram.greeting")}</p>
+        <div class="field"><label>${t("ram.iftar")}</label><input id="ramIftar" type="time" value="${r.iftar||'18:00'}" /></div>
+        <div class="field"><label>${t("ram.suhoor")}</label><input id="ramSuhoor" type="time" value="${r.suhoor||'04:00'}" /></div>
+        <button class="btn btn-primary btn-block" data-action="save-ramadan">${t("ram.save")}</button>
+        ${r.on?`<button class="btn btn-ghost btn-block" data-action="off-ramadan" style="margin-top:8px">${t("ram.off")}</button>`:""}
+      </div>`);
+    openModal();
+  }
+  function saveRamadan(){
+    const iftar=(document.getElementById("ramIftar")||{}).value||"18:00";
+    const suhoor=(document.getElementById("ramSuhoor")||{}).value||"04:00";
+    Store.set({ ramadan:{ on:true, iftar, suhoor } });
+    closeModal(); toast(t("ram.on"));
+    if(currentTab==="home") renderHome();
+  }
+  function offRamadan(){
+    const r=Store.get().ramadan||{}; Store.set({ ramadan:{ ...r, on:false } });
+    closeModal(); toast(t("ram.off"));
+    if(currentTab==="home") renderHome();
+  }
+
+  /* ---------- 📤 Shareable achievement card (native canvas — no deps) ---------- */
+  async function shareAchievement(){
+    try{
+      const st=Store.get(), a=st.answers||{}, s=st.stats||{}, p=st.plan||{};
+      const name=a.name||t("profile.guest");
+      const W=540,H=540,dpr=2,F="'IBM Plex Sans Arabic',Tajawal,Arial,sans-serif";
+      const cv=document.createElement("canvas"); cv.width=W*dpr; cv.height=H*dpr;
+      const ctx=cv.getContext("2d"); ctx.scale(dpr,dpr); ctx.textAlign="center";
+      const g=ctx.createLinearGradient(0,0,W,H); g.addColorStop(0,"#16b377"); g.addColorStop(.55,"#0a7a52"); g.addColorStop(1,"#064e3b");
+      ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+      ctx.fillStyle="#fff";
+      ctx.font=`600 30px ${F}`; ctx.fillText("🌿 صِيام · Siam", W/2, 76);
+      ctx.font=`600 36px ${F}`; ctx.fillText(name, W/2, 188);
+      ctx.globalAlpha=.9; ctx.font=`400 16px ${F}`; ctx.fillText(t("share.member"), W/2, 216); ctx.globalAlpha=1;
+      ctx.font="64px serif"; ctx.fillText("🔥", W/2, 300);
+      const stats=[[s.streak||0,t("home.streak")],[s.completed||0,t("home.completed")],[p.proto||"16:8",t("p.proto")]];
+      const xs=[W/2-150,W/2,W/2+150];
+      stats.forEach((it,i)=>{ ctx.font=`600 36px ${F}`; ctx.fillText(String(it[0]),xs[i],392); ctx.globalAlpha=.9; ctx.font=`400 14px ${F}`; ctx.fillText(it[1],xs[i],418); ctx.globalAlpha=1; });
+      ctx.globalAlpha=.92; ctx.font=`400 17px ${F}`; ctx.fillText(t("share.text"), W/2, 486); ctx.globalAlpha=1;
+      const blob=await new Promise(res=>cv.toBlob(res,"image/png"));
+      const file=new File([blob],"siam-achievement.png",{type:"image/png"});
+      if(navigator.canShare && navigator.canShare({files:[file]})){
+        try{ await navigator.share({ files:[file], text:t("share.text") }); }
+        catch(e){ if(e&&e.name!=="AbortError") throw e; }
+      } else {
+        const url=URL.createObjectURL(blob);
+        const link=document.createElement("a"); link.href=url; link.download="siam-achievement.png"; link.click();
+        setTimeout(()=>URL.revokeObjectURL(url),3000); toast(t("share.saved"));
+      }
+    }catch(e){ toast(t("share.err")); }
   }
 
   /* ============================================================
@@ -571,6 +662,8 @@ window.App = (() => {
           : `<div class="list-item" data-action="open-auth"><span class="li-ico">👤</span><span>${t("auth.login")} / ${t("auth.register")}</span><span class="li-arrow">${arrow}</span></div>`}
         <div class="list-item" data-action="restart-wizard"><span class="li-ico">✏️</span><span>${t("p.editplan")}</span><span class="li-arrow">${arrow}</span></div>
         <div class="list-item" data-action="toggle-notify"><span class="li-ico">🔔</span><span>${t("notify.title")}</span><span class="li-arrow" style="color:${st.notify?'var(--green-600)':'var(--ink-soft)'}">${st.notify?'●':'○'}</span></div>
+        <div class="list-item" data-action="manage-ramadan"><span class="li-ico">🌙</span><span>${t("ram.title")}</span><span class="li-arrow" style="color:${st.ramadan&&st.ramadan.on?'var(--green-600)':'var(--ink-soft)'}">${st.ramadan&&st.ramadan.on?'●':'○'}</span></div>
+        <div class="list-item" data-action="share-card"><span class="li-ico">📤</span><span>${t("share.title")}</span><span class="li-arrow">${arrow}</span></div>
         <div class="list-item" data-action="toggle-lang"><span class="li-ico">🌐</span><span>${t("p.lang")}</span><span class="li-arrow">${L()==='ar'?'العربية':'English'}</span></div>
       </div>
       <div class="list-group">

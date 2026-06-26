@@ -14,7 +14,8 @@ window.Store = (() => {
     fast:{ active:false, startTs:null },
     stats:{ completed:0, streak:0, best:0, lastDay:null },
     sub:null,
-    notify:false
+    notify:false,
+    ramadan:{ on:false, iftar:"18:00", suhoor:"04:00" }
   };
 
   let state = load();

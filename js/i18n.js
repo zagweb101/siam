@@ -41,6 +41,8 @@ window.I18N = {
     "home.untilbreak":"متبقٍ على الإفطار","home.canbreak":"حان موعد الإفطار 🎉","home.breakat":"موعد الإفطار","home.eatnow":"أنت في نافذة الأكل — اضغط لبدء صيامك",
     "home.stages":"رحلة جسمك أثناء الصيام","home.stagesNote":"معلومات للعافية — ليست نصيحة طبية.","home.stageNow":"الآن","home.upcoming":"قادم",
     "notify.title":"تذكير الإفطار","notify.on":"تم تفعيل التذكيرات 🔔","notify.off":"تم إيقاف التذكيرات","notify.denied":"الإشعارات محظورة من إعدادات المتصفح","notify.breakTitle":"🎉 حان موعد الإفطار","notify.breakBody":"أكملت صيامك بنجاح — افتح نافذة الأكل بصحة وعافية.",
+    "ram.title":"وضع رمضان","ram.greeting":"رمضان كريم 🌙","ram.iftar":"الإفطار","ram.suhoor":"السحور","ram.toIftar":"متبقٍ على الإفطار","ram.toSuhoor":"متبقٍ على السحور","ram.set":"اضبط أوقات رمضان","ram.save":"حفظ","ram.on":"تم تفعيل وضع رمضان 🌙","ram.off":"تم إيقاف وضع رمضان",
+    "share.title":"شارك إنجازك","share.cta":"📤 شارك إنجازك","share.text":"أكملت صيامي مع تطبيق صِيام 🌿","share.saved":"تم حفظ صورة الإنجاز 📤","share.err":"تعذّر إنشاء الصورة","share.member":"عضو في صِيام",
     "upsell.title":"افتح كل المزايا مع Pro","upsell.sub":"وجبات أسبوعية · تمارين مصوّرة · مقالات حصرية",
 
     // meals
@@ -141,6 +143,8 @@ window.I18N = {
     "home.untilbreak":"Until you can eat","home.canbreak":"Time to break your fast 🎉","home.breakat":"Break fast at","home.eatnow":"You're in your eating window — tap to start a fast",
     "home.stages":"Your body through the fast","home.stagesNote":"Wellness info — not medical advice.","home.stageNow":"Now","home.upcoming":"Upcoming",
     "notify.title":"Break-fast reminder","notify.on":"Reminders on 🔔","notify.off":"Reminders off","notify.denied":"Notifications are blocked in browser settings","notify.breakTitle":"🎉 Time to break your fast","notify.breakBody":"You completed your fast — enjoy your eating window.",
+    "ram.title":"Ramadan mode","ram.greeting":"Ramadan Kareem 🌙","ram.iftar":"Iftar","ram.suhoor":"Suhoor","ram.toIftar":"Until Iftar","ram.toSuhoor":"Until Suhoor","ram.set":"Set Ramadan times","ram.save":"Save","ram.on":"Ramadan mode on 🌙","ram.off":"Ramadan mode off",
+    "share.title":"Share your progress","share.cta":"📤 Share your progress","share.text":"I'm fasting with Siam 🌿","share.saved":"Achievement image saved 📤","share.err":"Couldn't create the image","share.member":"Siam member",
     "upsell.title":"Unlock everything with Pro","upsell.sub":"Weekly meals · illustrated workouts · exclusive articles",
 
     "meals.title":"Meals","meals.search":"Search a meal...",
