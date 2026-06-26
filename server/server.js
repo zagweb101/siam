@@ -47,9 +47,38 @@ if (!configured) {
 
 const app = express();
 
-/* ---- Security: Helmet (HTTP security headers) ---- */
+/* ---- Security: Helmet (HTTP security headers) ----
+   A real CSP that allows exactly what the app needs:
+   - PayPal SDK (scripts/iframes/connections to *.paypal.com / *.paypalobjects.com)
+   - Google Fonts (style + font hosts), inline styles (the UI uses style="" heavily)
+   - content APIs: TheMealDB, wger, Wikipedia
+   The app has NO inline <script> of its own, so script-src omits 'unsafe-inline'. */
 app.use(helmet({
-  contentSecurityPolicy: false,      // we load external fonts/images/PayPal SDK
+  contentSecurityPolicy: {
+    useDefaults: true,
+    directives: {
+      "default-src": ["'self'"],
+      "script-src": ["'self'", "https://*.paypal.com", "https://*.paypalobjects.com"],
+      "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      "font-src": ["'self'", "https://fonts.gstatic.com", "data:"],
+      "img-src": ["'self'", "data:", "https:"],
+      "connect-src": [
+        "'self'",
+        "https://*.paypal.com",
+        "https://www.themealdb.com",
+        "https://wger.de",
+        "https://*.wikipedia.org",
+        "https://*.wikimedia.org",
+      ],
+      "frame-src": ["https://*.paypal.com"],
+      "worker-src": ["'self'", "blob:"],
+      "object-src": ["'none'"],
+      "base-uri": ["'self'"],
+      "form-action": ["'self'", "https://*.paypal.com"],
+      "frame-ancestors": ["'none'"],
+      "upgrade-insecure-requests": [],
+    },
+  },
   crossOriginEmbedderPolicy: false,  // PayPal iframes need this
 }));
 
