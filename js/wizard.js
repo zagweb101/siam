@@ -122,14 +122,16 @@ window.Wizard = (() => {
   function finish(){
     Store.generatePlan();
     Store.set({ onboarded:true });
-    App.enterApp();
-    if(App.syncToCloud) App.syncToCloud();   // save plan to cloud if logged in
-    App.toast(t("toast.planready"));
-    // Show the suggested plan first, then offer Pro. The visitor can subscribe
-    // or close the paywall and keep browsing the free tier.
-    if(!Store.get().pro && App.openPaywall){
-      setTimeout(()=>App.openPaywall(), 700);
-    }
+    const enter = ()=>{
+      App.enterApp();
+      if(App.syncToCloud) App.syncToCloud();   // persist plan to the account
+      App.toast(t("toast.planready"));
+      // then offer Pro — can be closed to keep using the free plan
+      if(!Store.get().pro && App.openPaywall) setTimeout(()=>App.openPaywall(), 700);
+    };
+    // no guest access: must create an account / log in before entering the app
+    if(Auth.isLoggedIn()) enter();
+    else App.requireAuth("register", enter);
   }
 
   /* helpers */

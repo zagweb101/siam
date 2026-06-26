@@ -18,7 +18,9 @@ window.App = (() => {
         if(Store.get().onboarded) enterApp(); else showScreen("splash");
       });
     } else {
-      if(st.onboarded) enterApp(); else showScreen("splash");
+      // no guest access: a returning (onboarded) but logged-out user must log in
+      if(st.onboarded) requireAuth("login", ()=>enterApp());
+      else showScreen("splash");
     }
   }
 
@@ -29,9 +31,9 @@ window.App = (() => {
       const j = await Auth.me();
       if(j.profile && j.profile.answers){
         Store.set({ answers:j.profile.answers, plan:j.profile.plan || null,
-          stats:j.profile.stats || Store.get().stats, onboarded:true, pro:!!j.pro });
+          stats:j.profile.stats || Store.get().stats, onboarded:true, pro:!!j.pro, sub:j.sub||null });
       } else {
-        Store.set({ pro:!!j.pro });
+        Store.set({ pro:!!j.pro, sub:j.sub||null });
         await syncToCloud();           // new account → push local wizard data up
       }
       updateProBadge();
@@ -79,11 +81,6 @@ window.App = (() => {
   function handleAction(action, el, e){
     switch(action){
       case "start-wizard": gateDisclaimer(()=>Wizard.start()); break;
-      case "skip-to-app":
-        gateDisclaimer(()=>{
-          if(!Store.get().plan) Store.generatePlan();
-          Store.set({ onboarded:true }); enterApp();
-        }); break;
       case "accept-disclaimer":
         Store.set({ disclaimerAccepted:true }); closeModal();
         if(_pendingAfterDisclaimer){ const f=_pendingAfterDisclaimer; _pendingAfterDisclaimer=null; f(); }
@@ -105,7 +102,7 @@ window.App = (() => {
       }
       case "open-paywall": openPaywall(); break;
       case "close-paywall": closePaywall(); break;
-      case "close-modal": closeModal(); break;
+      case "close-modal": _authMandatory ? cancelMandatoryAuth() : closeModal(); break;
       case "subscribe": {
         // Require an account first so the subscription is tied to the user
         // (cross-device) and PayPal gets a custom_id.
@@ -434,31 +431,54 @@ window.App = (() => {
     const p = st.plan || Store.generatePlan();
     const v = document.querySelector('.view[data-view="profile"]');
     const name = a.name || t("profile.guest");
+    const pro = !!st.pro, sub = st.sub;
+    const arrow = L()==='ar'?'‹':'›';
     const goalMap = { lose:t("w.goal.lose"),maintain:t("w.goal.maintain"),muscle:t("w.goal.muscle"),health:t("w.goal.health") };
+    const dietMap = { all:t("w.diet.all"),veg:t("w.diet.veg"),keto:t("w.diet.keto"),lowcarb:t("w.diet.lowcarb") };
+    const bmiCat = t("p.bmi."+(p.bmiCat||"normal"));
+    // subscription status + due date (plan ends/renews on this date)
+    let subDateRow = "";
+    if(sub && sub.expiresAt){
+      const lbl = sub.status==="ACTIVE" ? t("p.renews") : t("p.ends");
+      subDateRow = `<div class="list-item" style="cursor:default"><span class="li-ico">📅</span><span>${lbl}</span><span class="li-arrow">${fmtDate(sub.expiresAt)}</span></div>`;
+    }
     v.innerHTML = `
       <div class="profile-head">
         <div class="avatar">${a.gender==="female"?"👩":"🧑"}</div>
         <h2>${esc(name)}</h2>
         <div class="p-sub">${Auth.isLoggedIn()? esc((Auth.user()||{}).email||"") : t("auth.guest")}</div>
-        ${st.pro?`<div class="p-sub" style="color:var(--green-700);font-weight:700;margin-top:2px">👑 ${t("p.pro")}</div>`:""}
+        ${pro?`<div class="p-sub" style="color:var(--green-700);font-weight:600;margin-top:2px">👑 ${t("p.pro")}</div>`:""}
       </div>
+
+      <div class="sec-head"><h3>${t("p.plan")}</h3></div>
       <div class="stat-row">
         <div class="stat-box"><b>${p.proto}</b><span>${t("p.proto")}</span></div>
-        <div class="stat-box"><b>${p.bmi}</b><span>${t("p.bmi")}</span></div>
+        <div class="stat-box"><b>${p.bmi}</b><span>${bmiCat}</span></div>
         <div class="stat-box"><b>${p.calories}</b><span>${t("common.cal")}</span></div>
       </div>
       <div class="list-group">
+        <div class="list-item" style="cursor:default"><span class="li-ico">⏳</span><span>${t("p.fasthours")}</span><span class="li-arrow">${p.fast}h</span></div>
+        <div class="list-item" style="cursor:default"><span class="li-ico">🍽️</span><span>${t("p.eatwindow")}</span><span class="li-arrow">${fmtWindow(p.eatStart,p.eatEnd)}</span></div>
+        <div class="list-item" style="cursor:default"><span class="li-ico">🎯</span><span>${t("p.goal")}</span><span class="li-arrow">${goalMap[a.goal]||a.goal}</span></div>
+        <div class="list-item" style="cursor:default"><span class="li-ico">🥗</span><span>${t("p.diet")}</span><span class="li-arrow">${dietMap[a.diet]||a.diet}</span></div>
+      </div>
+
+      <div class="sec-head"><h3>${t("p.subStatus")}</h3></div>
+      <div class="list-group">
+        <div class="list-item" data-action="manage-sub"><span class="li-ico">👑</span><span>${t("p.subscription")}</span><span class="li-arrow">${pro?t("p.pro"):t("p.free")}</span></div>
+        ${subDateRow}
+      </div>
+
+      <div class="list-group">
         ${Auth.isLoggedIn()
-          ? `<div class="list-item" data-action="logout"><span class="li-ico">🚪</span><span>${t("auth.logout")}</span><span class="li-arrow">${L()==='ar'?'‹':'›'}</span></div>`
-          : `<div class="list-item" data-action="open-auth"><span class="li-ico">👤</span><span>${t("auth.login")} / ${t("auth.register")}</span><span class="li-arrow">${L()==='ar'?'‹':'›'}</span></div>`}
-        <div class="list-item" data-action="restart-wizard"><span class="li-ico">🎯</span><span>${t("p.editplan")}</span><span class="li-arrow">${L()==='ar'?'‹':'›'}</span></div>
-        <div class="list-item" data-action="manage-sub"><span class="li-ico">👑</span><span>${t("p.subscription")}</span><span class="li-arrow">${st.pro?t("p.pro"):t("p.free")}</span></div>
+          ? `<div class="list-item" data-action="logout"><span class="li-ico">🚪</span><span>${t("auth.logout")}</span><span class="li-arrow">${arrow}</span></div>`
+          : `<div class="list-item" data-action="open-auth"><span class="li-ico">👤</span><span>${t("auth.login")} / ${t("auth.register")}</span><span class="li-arrow">${arrow}</span></div>`}
+        <div class="list-item" data-action="restart-wizard"><span class="li-ico">✏️</span><span>${t("p.editplan")}</span><span class="li-arrow">${arrow}</span></div>
         <div class="list-item" data-action="toggle-lang"><span class="li-ico">🌐</span><span>${t("p.lang")}</span><span class="li-arrow">${L()==='ar'?'العربية':'English'}</span></div>
       </div>
       <div class="list-group">
-        <div class="list-item" data-action="open-terms"><span class="li-ico">📄</span><span>${t("p.terms")}</span><span class="li-arrow">${L()==='ar'?'‹':'›'}</span></div>
-        <div class="list-item" data-action="open-privacy"><span class="li-ico">🔒</span><span>${t("p.privacy")}</span><span class="li-arrow">${L()==='ar'?'‹':'›'}</span></div>
-        <div class="list-item" data-action="restart-wizard"><span class="li-ico">🔄</span><span>${t("p.restart")}</span><span class="li-arrow">${L()==='ar'?'‹':'›'}</span></div>
+        <div class="list-item" data-action="open-terms"><span class="li-ico">📄</span><span>${t("p.terms")}</span><span class="li-arrow">${arrow}</span></div>
+        <div class="list-item" data-action="open-privacy"><span class="li-ico">🔒</span><span>${t("p.privacy")}</span><span class="li-arrow">${arrow}</span></div>
       </div>
       <p class="paywall-note" style="text-align:center;line-height:1.7">⚕️ ${t("disc.body")}<br>Siam · v1.0</p>`;
   }
@@ -568,20 +588,37 @@ window.App = (() => {
   /* ---- account / auth ---- */
   let authMode = "login";
   let _pendingAfterAuth = null;
+  let _authMandatory = false;     // true = user must auth to proceed (post-wizard / returning)
   function gateAuth(then){
     if(Auth.isLoggedIn()){ then && then(); return; }
     _pendingAfterAuth = then || null;
+    _authMandatory = false;
     authMode = "login";
     showAuth();
   }
+  /* mandatory gate: shown after the wizard or for a returning logged-out user */
+  function requireAuth(mode, then){
+    _pendingAfterAuth = then || null;
+    _authMandatory = true;
+    authMode = mode || "register";
+    showScreen("splash");          // neutral backdrop behind the auth sheet
+    showAuth();
+  }
+  function cancelMandatoryAuth(){
+    _authMandatory = false; _pendingAfterAuth = null;
+    closeModal(); showScreen("splash");
+  }
   function showAuth(){
     const isLogin = authMode==="login";
+    const prompt = _authMandatory ? t("auth.mustPrompt") : (_pendingAfterAuth?t("auth.subPrompt"):"");
+    const closeBtn = _authMandatory ? "" :
+      `<button class="icon-btn close-x" data-action="close-modal" style="position:static;float:${L()==='ar'?'left':'right'}">×</button>`;
     fillModal(`
       <div class="detail-body" style="padding:28px 22px 30px">
-        <button class="icon-btn close-x" data-action="close-modal" style="position:static;float:${L()==='ar'?'left':'right'}">×</button>
+        ${closeBtn}
         <div style="text-align:center;font-size:40px">🌿</div>
         <h4 style="text-align:center;font-size:20px">${isLogin?t("auth.login"):t("auth.register")}</h4>
-        <p class="paywall-note" style="text-align:center;margin-bottom:6px">${_pendingAfterAuth?t("auth.subPrompt"):""}</p>
+        <p class="paywall-note" style="text-align:center;margin-bottom:6px">${prompt}</p>
         <div id="authErr" class="paywall-note" style="color:var(--danger);text-align:center;min-height:14px"></div>
         <div class="field"><label>${t("auth.email")}</label><input id="authEmail" type="email" autocomplete="email" inputmode="email" /></div>
         <div class="field"><label>${t("auth.pass")}</label><input id="authPass" type="password" autocomplete="${isLogin?'current-password':'new-password'}" /></div>
@@ -607,6 +644,7 @@ window.App = (() => {
       closeModal();
       updateProBadge();
       toast(authMode==="login"?t("auth.welcome"):t("auth.created"));
+      _authMandatory=false;
       const cb=_pendingAfterAuth; _pendingAfterAuth=null; if(cb) cb();
     }catch(e){
       const key="auth.err."+((e&&e.message)||"generic");
@@ -658,6 +696,8 @@ window.App = (() => {
     Store.set({ pro:true });
     updateProBadge(); closePaywall(); rerenderCurrent();
     toast(t("toast.subscribed"));
+    // pull the real subscription (status + expiry/renewal date) from the server
+    if(Auth.isLoggedIn()) hydrateFromCloud().then(rerenderCurrent).catch(()=>{});
   }
   function updateProBadge(){
     const b=document.getElementById("proBadge");
@@ -854,6 +894,7 @@ window.App = (() => {
   function skelCards(n){ return Array(n).fill('<div class="skel skel-card"></div>').join(""); }
   function skelLines(n){ return Array(n).fill('<div class="skel skel-line"></div>').join(""); }
   function fmtWindow(s,e){ const f=h=>String(((h%24)+24)%24).padStart(2,"0")+":00"; return f(s)+"–"+f(e); }
+  function fmtDate(iso){ if(!iso) return "—"; try{ return new Date(iso).toLocaleDateString(L()==="ar"?"ar-EG":"en-GB",{year:"numeric",month:"short",day:"numeric"}); }catch(e){ return "—"; } }
   function hms(sec){ const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=sec%60; return [h,m,s].map(x=>String(x).padStart(2,"0")).join(":"); }
   function tipOfDay(){ const tips=DATA.tips; const idx=new Date().getDate()%tips.length; return L()==="ar"?tips[idx].ar:tips[idx].en; }
   function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
@@ -862,7 +903,7 @@ window.App = (() => {
     clearTimeout(el._t); el._t=setTimeout(()=>el.hidden=true, 2600);
   }
 
-  return { init, showScreen, enterApp, switchTab, toast, openPaywall, closeModal, openLocked, syncServerConfig, syncToCloud };
+  return { init, showScreen, enterApp, switchTab, toast, openPaywall, closeModal, openLocked, syncServerConfig, syncToCloud, requireAuth };
 })();
 
 document.addEventListener("DOMContentLoaded", ()=>{

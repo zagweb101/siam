@@ -188,8 +188,11 @@ app.post("/api/auth/login", async (req, res) => {
 
 app.get("/api/me", authRequired, async (req, res) => {
   try {
-    const [profile, pro] = await Promise.all([db.getProfile(req.userId), db.isPro(req.userId)]);
-    res.json({ user: { id: req.userId, email: req.userEmail }, profile, pro });
+    const [profile, pro, s] = await Promise.all([
+      db.getProfile(req.userId), db.isPro(req.userId), db.getSubscription(req.userId),
+    ]);
+    const sub = s ? { status: s.status, planId: s.plan_id || null, expiresAt: s.expires_at || null } : null;
+    res.json({ user: { id: req.userId, email: req.userEmail }, profile, pro, sub });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -214,6 +217,11 @@ app.get("/api/config", (_req, res) => {
 
 app.get("/health", (_req, res) => res.json({ ok: true, env: PAYPAL_ENV, configured }));
 
+/* ---- subscription period helpers (so the plan ends at its due date) ---- */
+const addDays = (n) => new Date(Date.now() + n * 86400000).toISOString();
+const daysForPlanKey = (plan) => (plan === "yearly" ? 365 : 30);
+const daysForPlanId  = (planId) => (planId && planId === PLAN_YEARLY_ID ? 365 : 30);
+
 /* ===========================================================
    ONE-TIME ORDERS
    =========================================================== */
@@ -235,11 +243,13 @@ app.post("/api/orders", needPaypal, authRequired, async (req, res) => {
 
 app.post("/api/orders/:id/capture", needPaypal, authRequired, async (req, res) => {
   try {
+    const plan = req.body?.plan === "yearly" ? "yearly" : "monthly";
     const { ok, data } = await pp(`/v2/checkout/orders/${req.params.id}/capture`, "POST");
     if (!ok) return res.status(502).json({ error: "capture_failed", details: data });
     if (data.status === "COMPLETED") {
-      await db.setSubscription(req.userId, { status: "COMPLETED", source: "order", ref: data.id });
-      return res.json({ status: "COMPLETED", pro: true, id: data.id });
+      const expiresAt = addDays(daysForPlanKey(plan));   // access ends at the due date
+      await db.setSubscription(req.userId, { status: "COMPLETED", source: "order", ref: data.id, expiresAt });
+      return res.json({ status: "COMPLETED", pro: true, id: data.id, expiresAt });
     }
     res.status(402).json({ status: data.status, pro: false });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -257,8 +267,13 @@ app.post("/api/subscriptions/verify", needPaypal, authRequired, async (req, res)
     const { ok, data } = await pp(`/v1/billing/subscriptions/${id}`, "GET");
     if (!ok) return res.status(502).json({ error: "verify_failed", details: data });
     const active = data.status === "ACTIVE" || data.status === "APPROVED";
-    if (active) await db.setSubscription(req.userId, { status: data.status, source: "subscription", ref: id, planId: data.plan_id });
-    res.json({ status: data.status, pro: active });
+    if (active) {
+      // prefer PayPal's real next-billing date; fall back to plan period
+      const expiresAt = data.billing_info?.next_billing_time || addDays(daysForPlanId(data.plan_id));
+      await db.setSubscription(req.userId, { status: data.status, source: "subscription", ref: id, planId: data.plan_id, expiresAt });
+      return res.json({ status: data.status, pro: true, expiresAt });
+    }
+    res.json({ status: data.status, pro: false });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -285,9 +300,15 @@ app.post("/api/webhook", needPaypal, async (req, res) => {
     const uid = Number(resource.custom_id);
     if (uid) {
       if (event === "BILLING.SUBSCRIPTION.ACTIVATED" || event === "PAYMENT.SALE.COMPLETED") {
-        await db.setSubscription(uid, { status: "ACTIVE", source: "webhook", ref: resource.id, planId: resource.plan_id });
-      } else if (event === "BILLING.SUBSCRIPTION.CANCELLED" || event === "BILLING.SUBSCRIPTION.EXPIRED") {
-        await db.setSubscription(uid, { status: "CANCELLED", source: "webhook", ref: resource.id });
+        // new period paid → extend access to the next due date
+        const expiresAt = resource.billing_info?.next_billing_time || addDays(daysForPlanId(resource.plan_id));
+        await db.setSubscription(uid, { status: "ACTIVE", source: "webhook", ref: resource.id, planId: resource.plan_id, expiresAt });
+      } else if (event === "BILLING.SUBSCRIPTION.CANCELLED") {
+        // cancelled but keep access until the already-paid period ends
+        const cur = await db.getSubscription(uid);
+        await db.setSubscription(uid, { status: "CANCELLED", source: "webhook", ref: resource.id, planId: cur && cur.plan_id, expiresAt: cur && cur.expires_at });
+      } else if (event === "BILLING.SUBSCRIPTION.EXPIRED") {
+        await db.setSubscription(uid, { status: "EXPIRED", source: "webhook", ref: resource.id, expiresAt: new Date().toISOString() });
       }
     }
     console.log("webhook:", event, "user:", uid || "-");

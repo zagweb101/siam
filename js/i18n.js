@@ -54,6 +54,9 @@ window.I18N = {
     "p.goal":"الهدف","p.proto":"البروتوكول","p.bmi":"كتلة الجسم",
     "p.editplan":"تعديل خطتي","p.subscription":"الاشتراك","p.notify":"التذكيرات","p.lang":"اللغة","p.about":"عن التطبيق","p.restart":"إعادة الـ Wizard",
     "p.free":"مجاني","p.pro":"Pro مُفعّل",
+    "p.plan":"تفاصيل خطتك","p.fasthours":"ساعات الصيام","p.eatwindow":"نافذة الأكل","p.diet":"النمط الغذائي",
+    "p.subStatus":"حالة الاشتراك","p.renews":"يتجدّد في","p.ends":"ينتهي في",
+    "p.bmi.under":"نقص وزن","p.bmi.normal":"طبيعي","p.bmi.over":"زيادة وزن","p.bmi.obese":"سمنة",
 
     // paywall
     "paywall.title":"اشترك في Siam Pro","paywall.sub":"افتح كل الوجبات والتمارين والمقالات الحصرية",
@@ -82,6 +85,7 @@ window.I18N = {
     "auth.toRegister":"ليس لديك حساب؟ أنشئ واحداً","auth.toLogin":"لديك حساب؟ سجّل الدخول",
     "auth.logout":"تسجيل الخروج","auth.account":"الحساب","auth.guest":"زائر — لم تسجّل الدخول",
     "auth.subPrompt":"سجّل الدخول أو أنشئ حساباً لإتمام الاشتراك وحفظه على كل أجهزتك.",
+    "auth.mustPrompt":"أنشئ حسابك أو سجّل الدخول لحفظ خطتك والدخول إلى التطبيق.",
     "auth.synced":"بياناتك متزامنة على السحابة ☁️","auth.welcome":"أهلاً بعودتك 👋","auth.created":"تم إنشاء حسابك 🎉",
     "auth.err.invalid_email":"بريد إلكتروني غير صالح","auth.err.weak_password":"كلمة المرور 6 أحرف على الأقل",
     "auth.err.email_taken":"البريد مسجّل بالفعل","auth.err.bad_credentials":"بيانات الدخول غير صحيحة","auth.err.generic":"تعذّر الاتصال بالخادم",
@@ -143,6 +147,9 @@ window.I18N = {
     "p.goal":"Goal","p.proto":"Protocol","p.bmi":"BMI",
     "p.editplan":"Edit my plan","p.subscription":"Subscription","p.notify":"Reminders","p.lang":"Language","p.about":"About","p.restart":"Restart wizard",
     "p.free":"Free","p.pro":"Pro active",
+    "p.plan":"Your plan","p.fasthours":"Fasting hours","p.eatwindow":"Eating window","p.diet":"Diet",
+    "p.subStatus":"Subscription","p.renews":"Renews on","p.ends":"Ends on",
+    "p.bmi.under":"Underweight","p.bmi.normal":"Normal","p.bmi.over":"Overweight","p.bmi.obese":"Obese",
 
     "paywall.title":"Subscribe to Siam Pro","paywall.sub":"Unlock all meals, workouts & exclusive articles",
     "paywall.f1":"Full weekly meal plans with recipes","paywall.f2":"Detailed illustrated workout library",
@@ -168,6 +175,7 @@ window.I18N = {
     "auth.toRegister":"No account? Create one","auth.toLogin":"Have an account? Log in",
     "auth.logout":"Log out","auth.account":"Account","auth.guest":"Guest — not signed in",
     "auth.subPrompt":"Log in or create an account to complete and keep your subscription across all devices.",
+    "auth.mustPrompt":"Create your account or log in to save your plan and enter the app.",
     "auth.synced":"Your data is synced to the cloud ☁️","auth.welcome":"Welcome back 👋","auth.created":"Account created 🎉",
     "auth.err.invalid_email":"Invalid email","auth.err.weak_password":"Password must be 6+ characters",
     "auth.err.email_taken":"Email already registered","auth.err.bad_credentials":"Wrong email or password","auth.err.generic":"Couldn't reach the server",

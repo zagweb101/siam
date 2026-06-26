@@ -12,7 +12,8 @@ window.Store = (() => {
     answers:{ name:"", gender:"male", age:30, weight:75, height:172, goal:"lose", exp:"new", diet:"all" },
     plan:null,
     fast:{ active:false, startTs:null },
-    stats:{ completed:0, streak:0, best:0, lastDay:null }
+    stats:{ completed:0, streak:0, best:0, lastDay:null },
+    sub:null
   };
 
   let state = load();

@@ -54,8 +54,10 @@ export async function init() {
         source     TEXT,
         ref        TEXT,
         plan_id    TEXT,
+        expires_at TIMESTAMPTZ,
         updated_at TIMESTAMPTZ DEFAULT now()
       );
+      ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
     `);
     console.log("🗄️  Postgres connected");
   } else {
@@ -122,18 +124,19 @@ export async function saveProfile(userId, data) {
 }
 
 /* ---------------- subscriptions / entitlements ---------------- */
-export async function setSubscription(userId, { status, source, ref, planId }) {
+export async function setSubscription(userId, { status, source, ref, planId, expiresAt }) {
   userId = Number(userId);
+  const exp = expiresAt ? new Date(expiresAt).toISOString() : null;
   if (usingPg) {
     await pool.query(
-      `INSERT INTO subscriptions(user_id,status,source,ref,plan_id,updated_at)
-       VALUES($1,$2,$3,$4,$5,now())
-       ON CONFLICT (user_id) DO UPDATE SET status=$2,source=$3,ref=$4,plan_id=$5,updated_at=now()`,
-      [userId, status, source, ref || null, planId || null]);
+      `INSERT INTO subscriptions(user_id,status,source,ref,plan_id,expires_at,updated_at)
+       VALUES($1,$2,$3,$4,$5,$6,now())
+       ON CONFLICT (user_id) DO UPDATE SET status=$2,source=$3,ref=$4,plan_id=$5,expires_at=$6,updated_at=now()`,
+      [userId, status, source, ref || null, planId || null, exp]);
     return;
   }
   const d = fileRead();
-  d.subs[userId] = { status, source, ref: ref || null, plan_id: planId || null, updated_at: new Date().toISOString() };
+  d.subs[userId] = { status, source, ref: ref || null, plan_id: planId || null, expires_at: exp, updated_at: new Date().toISOString() };
   fileWrite(d);
 }
 
@@ -146,10 +149,15 @@ export async function getSubscription(userId) {
   return fileRead().subs[userId] || null;
 }
 
+/* Pro entitlement = a subscription whose paid period has not ended yet.
+   The plan ends exactly at expires_at (the due date), so one-time orders no
+   longer grant Pro forever, and cancelled subs keep access until period end. */
 export async function isPro(userId) {
   const s = await getSubscription(userId);
   if (!s) return false;
-  return s.status === "ACTIVE" || s.status === "APPROVED" || s.status === "COMPLETED";
+  if (s.status === "EXPIRED") return false;
+  const exp = s.expires_at ? new Date(s.expires_at).getTime() : null;
+  return Boolean(exp && exp > Date.now());
 }
 
 /* small helper used by auth.js */
