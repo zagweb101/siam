@@ -10,6 +10,8 @@ import { fileURLToPath } from "node:url";
 import helmet from "helmet";
 import morgan from "morgan";
 import rateLimit from "express-rate-limit";
+import webpush from "web-push";
+import { z } from "zod";
 import * as db from "./db.js";
 import { hashPassword, verifyPassword, signToken, authRequired, isValidEmail } from "./auth.js";
 
@@ -31,9 +33,29 @@ const {
   PORT = 3000,
   ALLOWED_ORIGINS = "",
   NODE_ENV = "development",
+  VAPID_PUBLIC_KEY = "",
+  VAPID_PRIVATE_KEY = "",
+  VAPID_SUBJECT = "https://siam-production-61f9.up.railway.app",
 } = process.env;
 
 const isProd = NODE_ENV === "production";
+
+/* ---- Web Push (VAPID) — background break-fast reminders ---- */
+const pushEnabled = Boolean(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY);
+if (pushEnabled) {
+  try { webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY); }
+  catch (e) { console.warn("VAPID setup failed:", e.message); }
+} else {
+  console.warn("⚠️  Web Push disabled — set VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY to enable background reminders.");
+}
+
+/* ---- zod input schemas ---- */
+const credSchema = z.object({ email: z.string().email(), password: z.string().min(6).max(200) });
+const loginSchema = z.object({ email: z.string().min(3), password: z.string().min(1) });
+const pushSchema = z.object({
+  subscription: z.object({ endpoint: z.string().url() }).passthrough(),
+  fireAt: z.union([z.string(), z.number()]).nullable().optional(),
+});
 
 const BASE = PAYPAL_ENV === "live"
   ? "https://api-m.paypal.com"
@@ -167,9 +189,12 @@ const needPaypal = (_req, res, next) => configured ? next()
    AUTH — register / login / me / profile sync
    =========================================================== */
 app.post("/api/auth/register", async (req, res) => {
-  const { email, password } = req.body || {};
-  if (!isValidEmail(email)) return res.status(400).json({ error: "invalid_email" });
-  if (!password || String(password).length < 6) return res.status(400).json({ error: "weak_password" });
+  const parsed = credSchema.safeParse(req.body || {});
+  if (!parsed.success) {
+    const bad = parsed.error.issues[0];
+    return res.status(400).json({ error: bad.path[0] === "email" ? "invalid_email" : "weak_password" });
+  }
+  const { email, password } = parsed.data;
   try {
     if (await db.getUserByEmail(email)) return res.status(409).json({ error: "email_taken" });
     const user = await db.createUser(email, hashPassword(password));
@@ -178,7 +203,9 @@ app.post("/api/auth/register", async (req, res) => {
 });
 
 app.post("/api/auth/login", async (req, res) => {
-  const { email, password } = req.body || {};
+  const parsed = loginSchema.safeParse(req.body || {});
+  if (!parsed.success) return res.status(400).json({ error: "bad_credentials" });
+  const { email, password } = parsed.data;
   try {
     const u = await db.getUserByEmail(email);
     if (!u || !verifyPassword(password, u.password_hash)) return res.status(401).json({ error: "bad_credentials" });
@@ -200,6 +227,26 @@ app.put("/api/me/profile", authRequired, async (req, res) => {
   const data = req.body && req.body.profile;
   if (!data || typeof data !== "object") return res.status(400).json({ error: "no_profile" });
   try { await db.saveProfile(req.userId, data); res.json({ ok: true }); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+/* ===========================================================
+   WEB PUSH — public key + subscribe/cancel for break-fast reminders
+   =========================================================== */
+app.get("/api/push/key", (_req, res) => res.json({ enabled: pushEnabled, key: VAPID_PUBLIC_KEY }));
+
+app.post("/api/push/subscribe", authRequired, async (req, res) => {
+  if (!pushEnabled) return res.status(503).json({ error: "push_disabled" });
+  const parsed = pushSchema.safeParse(req.body || {});
+  if (!parsed.success) return res.status(400).json({ error: "bad_subscription" });
+  try {
+    await db.setPush(req.userId, parsed.data.subscription, parsed.data.fireAt || null);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post("/api/push/cancel", authRequired, async (req, res) => {
+  try { await db.clearPushFire(req.userId); res.json({ ok: true }); }
   catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -324,6 +371,21 @@ app.get("/api/entitlement", authRequired, async (req, res) => {
 
 /* ---- unknown API routes → JSON 404 (never the SPA HTML) ---- */
 app.use("/api", (_req, res) => res.status(404).json({ error: "not_found" }));
+
+/* ---- break-fast reminder scheduler (runs every minute) ---- */
+async function sendDuePush() {
+  if (!pushEnabled) return;
+  try {
+    const due = await db.getDuePush();
+    for (const { userId, sub } of due) {
+      const payload = JSON.stringify({ title: "🎉 حان موعد الإفطار · Break your fast", body: "أكملت صيامك — افتح نافذة الأكل بصحة. You completed your fast!" });
+      try { await webpush.sendNotification(sub, payload); }
+      catch (err) { if (err && (err.statusCode === 404 || err.statusCode === 410)) await db.removePush(userId); }
+      await db.clearPushFire(userId);
+    }
+  } catch (e) { console.warn("push scheduler:", e.message); }
+}
+if (pushEnabled) setInterval(sendDuePush, 60 * 1000);
 
 /* ---- serve the front-end (single deploy) ---- */
 app.use(express.static(path.join(__dirname, "..")));

@@ -25,8 +25,8 @@ const usingPg = Boolean(DATABASE_URL);
 
 /* ---------------- JSON-file backend helpers ---------------- */
 function fileRead() {
-  try { return JSON.parse(fs.readFileSync(FILE, "utf8")); }
-  catch { return { seq: 0, users: [], profiles: {}, subs: {} }; }
+  try { const d = JSON.parse(fs.readFileSync(FILE, "utf8")); if(!d.push) d.push={}; return d; }
+  catch { return { seq: 0, users: [], profiles: {}, subs: {}, push: {} }; }
 }
 function fileWrite(d) { fs.writeFileSync(FILE, JSON.stringify(d, null, 2)); }
 
@@ -58,6 +58,12 @@ export async function init() {
         updated_at TIMESTAMPTZ DEFAULT now()
       );
       ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
+      CREATE TABLE IF NOT EXISTS push_subs (
+        user_id    INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        sub        JSONB NOT NULL,
+        fire_at    TIMESTAMPTZ,
+        updated_at TIMESTAMPTZ DEFAULT now()
+      );
     `);
     console.log("🗄️  Postgres connected");
   } else {
@@ -158,6 +164,40 @@ export async function isPro(userId) {
   if (s.status === "EXPIRED") return false;
   const exp = s.expires_at ? new Date(s.expires_at).getTime() : null;
   return Boolean(exp && exp > Date.now());
+}
+
+/* ---------------- web push subscriptions ---------------- */
+export async function setPush(userId, sub, fireAt) {
+  userId = Number(userId);
+  const fa = fireAt ? new Date(fireAt).toISOString() : null;
+  if (usingPg) {
+    await pool.query(
+      `INSERT INTO push_subs(user_id,sub,fire_at,updated_at) VALUES($1,$2,$3,now())
+       ON CONFLICT (user_id) DO UPDATE SET sub=$2,fire_at=$3,updated_at=now()`,
+      [userId, sub, fa]);
+    return;
+  }
+  const d = fileRead(); d.push[userId] = { sub, fire_at: fa }; fileWrite(d);
+}
+export async function clearPushFire(userId) {
+  userId = Number(userId);
+  if (usingPg) { await pool.query("UPDATE push_subs SET fire_at=NULL WHERE user_id=$1", [userId]); return; }
+  const d = fileRead(); if (d.push[userId]) { d.push[userId].fire_at = null; fileWrite(d); }
+}
+export async function removePush(userId) {
+  userId = Number(userId);
+  if (usingPg) { await pool.query("DELETE FROM push_subs WHERE user_id=$1", [userId]); return; }
+  const d = fileRead(); delete d.push[userId]; fileWrite(d);
+}
+/* due reminders (fire_at reached) → [{userId, sub}] */
+export async function getDuePush() {
+  if (usingPg) {
+    const r = await pool.query("SELECT user_id, sub FROM push_subs WHERE fire_at IS NOT NULL AND fire_at <= now()");
+    return r.rows.map(x => ({ userId: x.user_id, sub: x.sub }));
+  }
+  const d = fileRead(); const now = Date.now(); const out = [];
+  for (const uid in d.push) { const p = d.push[uid]; if (p.fire_at && new Date(p.fire_at).getTime() <= now) out.push({ userId: Number(uid), sub: p.sub }); }
+  return out;
 }
 
 /* small helper used by auth.js */

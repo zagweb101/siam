@@ -342,7 +342,7 @@ window.App = (() => {
       // ending a fast → log it for streak/stats, then refresh the home view
       const elapsed = st.fast.startTs ? Math.floor((Date.now()-st.fast.startTs)/1000) : 0;
       Store.set({ fast:{active:false,startTs:null} });
-      clearBreakNotif();
+      clearBreakNotif(); cancelPush();
       const rec = Store.recordFast(elapsed);
       if(rec){ toast(t("toast.fastlogged")); celebrate(); }
       if(App.syncToCloud) App.syncToCloud();
@@ -351,7 +351,8 @@ window.App = (() => {
     }
     Store.set({ fast:{active:true,startTs:Date.now()} });
     _celebratedFor = null;
-    scheduleBreakNotif();          // schedule the break-fast reminder
+    scheduleBreakNotif();          // foreground reminder (app open)
+    subscribePush();               // background reminder (app closed)
     if(currentTab==="home") renderHome(); else drawTimer();
   }
 
@@ -400,13 +401,46 @@ window.App = (() => {
     if(ms>0 && ms < 24*3600*1000) _breakTimer=setTimeout(()=>showNotif(t("notify.breakTitle"), t("notify.breakBody")), ms);
   }
   async function toggleNotify(){
-    if(Store.get().notify){ Store.set({ notify:false }); clearBreakNotif(); toast(t("notify.off")); rerenderCurrent(); return; }
+    if(Store.get().notify){ Store.set({ notify:false }); clearBreakNotif(); cancelPush(); toast(t("notify.off")); rerenderCurrent(); return; }
     if(!("Notification" in window)){ toast(t("notify.denied")); return; }
     let perm = Notification.permission;
     if(perm!=="granted") perm = await Notification.requestPermission();
-    if(perm==="granted"){ Store.set({ notify:true }); toast(t("notify.on")); scheduleBreakNotif(); }
+    if(perm==="granted"){ Store.set({ notify:true }); toast(t("notify.on")); scheduleBreakNotif(); subscribePush(); }
     else toast(t("notify.denied"));
     rerenderCurrent();
+  }
+
+  /* ---- background web-push (works when the app is closed) ---- */
+  function fastBreakFireAt(){
+    const st=Store.get();
+    return (st.fast.active && st.fast.startTs && st.plan)
+      ? new Date(st.fast.startTs + st.plan.fast*3600*1000).toISOString() : null;
+  }
+  function urlB64ToUint8(b64){
+    const pad="=".repeat((4-b64.length%4)%4);
+    const s=(b64+pad).replace(/-/g,"+").replace(/_/g,"/"); const raw=atob(s);
+    const arr=new Uint8Array(raw.length); for(let i=0;i<raw.length;i++) arr[i]=raw.charCodeAt(i); return arr;
+  }
+  async function subscribePush(fireAt){
+    try{
+      if(!Store.get().notify || !("serviceWorker" in navigator) || !("PushManager" in window)) return;
+      if(!("Notification" in window) || Notification.permission!=="granted") return;
+      const base=apiBase(); if(!base || !Auth.isLoggedIn()) return;
+      const reg=await navigator.serviceWorker.getRegistration(); if(!reg || !reg.pushManager) return;
+      const keyRes=await fetch(base+"/api/push/key").then(r=>r.json()).catch(()=>null);
+      if(!keyRes || !keyRes.enabled || !keyRes.key) return;     // push not configured on server
+      let sub=await reg.pushManager.getSubscription();
+      if(!sub) sub=await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey:urlB64ToUint8(keyRes.key) });
+      await fetch(base+"/api/push/subscribe",{ method:"POST",
+        headers:Object.assign({"Content-Type":"application/json"}, Auth.authHeader()),
+        body:JSON.stringify({ subscription:sub, fireAt: fireAt || fastBreakFireAt() }) });
+    }catch(e){ /* push is best-effort */ }
+  }
+  async function cancelPush(){
+    try{
+      const base=apiBase(); if(!base || !Auth.isLoggedIn()) return;
+      await fetch(base+"/api/push/cancel",{ method:"POST", headers:Auth.authHeader() });
+    }catch(e){}
   }
 
   /* ---------- 🌙 Ramadan mode (manual iftar/suhoor times) ---------- */

@@ -1,7 +1,7 @@
 /* ============================================================
    service-worker.js — offline app shell (PWA)
    ============================================================ */
-const CACHE = "siam-v14";
+const CACHE = "siam-v15";
 const SHELL = [
   "./",
   "./index.html",
@@ -49,4 +49,20 @@ self.addEventListener("fetch", (e) => {
       return res;
     }).catch(() => caches.match(req).then((hit) => hit || (url.origin === location.origin ? caches.match("./index.html") : undefined)))
   );
+});
+
+/* ---- Web Push: show the break-fast reminder, focus app on click ---- */
+self.addEventListener("push", (e) => {
+  let data = { title: "صِيام", body: "" };
+  try { if (e.data) data = e.data.json(); } catch (_) { if (e.data) data.body = e.data.text(); }
+  e.waitUntil(self.registration.showNotification(data.title || "صِيام", {
+    body: data.body || "", icon: "icons/icon-192.png", badge: "icons/icon-192.png", dir: "auto", tag: "siam-breakfast"
+  }));
+});
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+    for (const c of list) { if ("focus" in c) return c.focus(); }
+    if (self.clients.openWindow) return self.clients.openWindow("./");
+  }));
 });
