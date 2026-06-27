@@ -15,7 +15,8 @@ window.Store = (() => {
     stats:{ completed:0, streak:0, best:0, lastDay:null },
     sub:null,
     notify:false,
-    ramadan:{ on:false, iftar:"18:00", suhoor:"04:00" }
+    ramadan:{ on:false, iftar:"18:00", suhoor:"04:00" },
+    weights:[]
   };
 
   let state = load();
@@ -101,6 +102,18 @@ window.Store = (() => {
     return s;
   }
 
+  /* ---------- weight log (one entry per day) ---------- */
+  function logWeight(kg){
+    kg=+kg; if(!kg||isNaN(kg)||kg<25||kg>400) return null;
+    kg=Math.round(kg*10)/10;
+    const x=new Date(); x.setHours(0,0,0,0); const day=x.toISOString().slice(0,10);
+    const w=state.weights||(state.weights=[]);
+    const e=w.find(p=>p.d===day);
+    if(e) e.kg=kg; else w.push({ d:day, kg });
+    w.sort((a,b)=> a.d<b.d?-1:1);
+    save(); return w;
+  }
+
   function dietToMealCat(diet){
     switch(diet){
       case "veg": return "Vegetarian";
@@ -110,5 +123,5 @@ window.Store = (() => {
     }
   }
 
-  return { get, set, setAnswer, reset, save, generatePlan, recordFast };
+  return { get, set, setAnswer, reset, save, generatePlan, recordFast, logWeight };
 })();

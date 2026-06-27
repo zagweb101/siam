@@ -43,6 +43,7 @@ window.I18N = {
     "notify.title":"تذكير الإفطار","notify.on":"تم تفعيل التذكيرات 🔔","notify.off":"تم إيقاف التذكيرات","notify.denied":"الإشعارات محظورة من إعدادات المتصفح","notify.breakTitle":"🎉 حان موعد الإفطار","notify.breakBody":"أكملت صيامك بنجاح — افتح نافذة الأكل بصحة وعافية.",
     "ram.title":"وضع رمضان","ram.greeting":"رمضان كريم 🌙","ram.iftar":"الإفطار","ram.suhoor":"السحور","ram.toIftar":"متبقٍ على الإفطار","ram.toSuhoor":"متبقٍ على السحور","ram.set":"اضبط أوقات رمضان","ram.save":"حفظ","ram.on":"تم تفعيل وضع رمضان 🌙","ram.off":"تم إيقاف وضع رمضان",
     "share.title":"شارك إنجازك","share.cta":"📤 شارك إنجازك","share.text":"أكملت صيامي مع تطبيق صِيام 🌿","share.saved":"تم حفظ صورة الإنجاز 📤","share.err":"تعذّر إنشاء الصورة","share.member":"عضو في صِيام",
+    "weight.title":"تتبّع الوزن","weight.current":"الوزن الحالي","weight.log":"سجّل وزنك","weight.kg":"كجم","weight.save":"حفظ","weight.logged":"تم تسجيل وزنك ✅","weight.none":"سجّل وزنك لمتابعة تقدّمك على الرسم البياني","weight.placeholder":"الوزن بالكجم","weight.err":"أدخل وزناً صحيحاً (25–400)",
     "upsell.title":"افتح كل المزايا مع Pro","upsell.sub":"وجبات أسبوعية · تمارين مصوّرة · مقالات حصرية",
 
     // meals
@@ -145,6 +146,7 @@ window.I18N = {
     "notify.title":"Break-fast reminder","notify.on":"Reminders on 🔔","notify.off":"Reminders off","notify.denied":"Notifications are blocked in browser settings","notify.breakTitle":"🎉 Time to break your fast","notify.breakBody":"You completed your fast — enjoy your eating window.",
     "ram.title":"Ramadan mode","ram.greeting":"Ramadan Kareem 🌙","ram.iftar":"Iftar","ram.suhoor":"Suhoor","ram.toIftar":"Until Iftar","ram.toSuhoor":"Until Suhoor","ram.set":"Set Ramadan times","ram.save":"Save","ram.on":"Ramadan mode on 🌙","ram.off":"Ramadan mode off",
     "share.title":"Share your progress","share.cta":"📤 Share your progress","share.text":"I'm fasting with Siam 🌿","share.saved":"Achievement image saved 📤","share.err":"Couldn't create the image","share.member":"Siam member",
+    "weight.title":"Weight tracking","weight.current":"Current weight","weight.log":"Log weight","weight.kg":"kg","weight.save":"Save","weight.logged":"Weight logged ✅","weight.none":"Log your weight to track progress on the chart","weight.placeholder":"Weight in kg","weight.err":"Enter a valid weight (25–400)",
     "upsell.title":"Unlock everything with Pro","upsell.sub":"Weekly meals · illustrated workouts · exclusive articles",
 
     "meals.title":"Meals","meals.search":"Search a meal...",

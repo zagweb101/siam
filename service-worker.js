@@ -1,7 +1,7 @@
 /* ============================================================
    service-worker.js — offline app shell (PWA)
    ============================================================ */
-const CACHE = "siam-v13";
+const CACHE = "siam-v14";
 const SHELL = [
   "./",
   "./index.html",
@@ -9,6 +9,7 @@ const SHELL = [
   "./js/vendor/confetti.min.js",
   "./js/vendor/dayjs.min.js",
   "./js/vendor/dayjs-ar.js",
+  "./js/vendor/chart.umd.min.js",
   "./js/config.js",
   "./js/auth.js",
   "./js/i18n.js",

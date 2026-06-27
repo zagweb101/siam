@@ -31,7 +31,8 @@ window.App = (() => {
       const j = await Auth.me();
       if(j.profile && j.profile.answers){
         Store.set({ answers:j.profile.answers, plan:j.profile.plan || null,
-          stats:j.profile.stats || Store.get().stats, onboarded:true, pro:!!j.pro, sub:j.sub||null });
+          stats:j.profile.stats || Store.get().stats, weights:j.profile.weights || Store.get().weights || [],
+          onboarded:true, pro:!!j.pro, sub:j.sub||null });
       } else {
         Store.set({ pro:!!j.pro, sub:j.sub||null });
         await syncToCloud();           // new account → push local wizard data up
@@ -45,7 +46,7 @@ window.App = (() => {
   async function syncToCloud(){
     if(!Auth.isLoggedIn()) return;
     const st = Store.get();
-    try{ await Auth.saveProfile({ answers:st.answers, plan:st.plan, stats:st.stats }); }catch(e){}
+    try{ await Auth.saveProfile({ answers:st.answers, plan:st.plan, stats:st.stats, weights:st.weights }); }catch(e){}
   }
 
   function showScreen(name){
@@ -128,6 +129,8 @@ window.App = (() => {
       case "save-ramadan": saveRamadan(); break;
       case "off-ramadan": offRamadan(); break;
       case "share-card": shareAchievement(); break;
+      case "log-weight": showLogWeight(); break;
+      case "save-weight": saveWeight(); break;
       case "restart-wizard": Wizard.start(); break;   // re-edit plan, keeps account & Pro
       case "manage-sub":
         if(Store.get().pro){ toast(t("sub.manageInfo")); }
@@ -490,6 +493,67 @@ window.App = (() => {
     }catch(e){ toast(t("share.err")); }
   }
 
+  /* ---------- ⚖️ Weight tracking (Chart.js, lazy-loaded) ---------- */
+  let _chartLoading=null, _weightChart=null;
+  function ensureChart(){
+    if(window.Chart) return Promise.resolve();
+    if(_chartLoading) return _chartLoading;
+    _chartLoading=new Promise((res,rej)=>{
+      const s=document.createElement("script"); s.src="js/vendor/chart.umd.min.js"; s.onload=res; s.onerror=rej; document.head.appendChild(s);
+    });
+    return _chartLoading;
+  }
+  function weightSection(){
+    const w=Store.get().weights||[], a=Store.get().answers||{};
+    const latest = w.length ? w[w.length-1].kg : (a.weight||"—");
+    return `<div class="sec-head"><h3>${t("weight.title")}</h3></div>
+      <div class="weight-card">
+        <div class="weight-top">
+          <div><div class="wt-num">${latest}<small>${t("weight.kg")}</small></div><div class="wt-lbl">${t("weight.current")}</div></div>
+          <button class="btn btn-outline" data-action="log-weight">＋ ${t("weight.log")}</button>
+        </div>
+        ${w.length ? `<div class="weight-chart-wrap"><canvas id="weightChart"></canvas></div>` : `<p class="weight-empty">${t("weight.none")}</p>`}
+      </div>`;
+  }
+  function drawWeightChart(){
+    const w=Store.get().weights||[]; if(!w.length) return;
+    ensureChart().then(()=>{
+      const cv=document.getElementById("weightChart"); if(!cv || !window.Chart) return;
+      if(_weightChart){ try{_weightChart.destroy();}catch(e){} _weightChart=null; }
+      _weightChart=new Chart(cv.getContext("2d"),{
+        type:"line",
+        data:{ labels:w.map(p=>fmtDate(p.d)), datasets:[{ data:w.map(p=>p.kg),
+          borderColor:"#0f9d6b", backgroundColor:"rgba(15,157,107,.12)", fill:true, tension:.35,
+          pointRadius:3, pointBackgroundColor:"#0a7a52", borderWidth:2 }] },
+        options:{ responsive:true, maintainAspectRatio:false, animation:{duration:600},
+          plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>c.parsed.y+" "+t("weight.kg")}}},
+          scales:{ x:{ ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:5,font:{size:10}}, grid:{display:false} },
+                   y:{ ticks:{font:{size:10}}, grid:{color:"rgba(0,0,0,.05)"} } } }
+      });
+    }).catch(()=>{});
+  }
+  function showLogWeight(){
+    const w=Store.get().weights||[]; const cur=(w.length?w[w.length-1].kg:Store.get().answers.weight)||"";
+    fillModal(`
+      <div class="detail-body" style="padding:26px 22px 30px">
+        <button class="icon-btn close-x" data-action="close-modal" style="position:static;float:${L()==='ar'?'left':'right'}">×</button>
+        <div style="text-align:center;font-size:42px">⚖️</div>
+        <h4 style="text-align:center;font-size:20px">${t("weight.log")}</h4>
+        <div class="field"><label>${t("weight.kg")}</label><input id="wInput" type="number" inputmode="decimal" step="0.1" min="25" max="400" value="${cur}" placeholder="${t('weight.placeholder')}" /></div>
+        <button class="btn btn-primary btn-block" data-action="save-weight">${t("weight.save")}</button>
+      </div>`);
+    openModal();
+    setTimeout(()=>{ const el=document.getElementById("wInput"); if(el){ el.focus(); try{el.select();}catch(e){} } }, 60);
+  }
+  function saveWeight(){
+    const kg=(document.getElementById("wInput")||{}).value;
+    const r=Store.logWeight(kg);
+    if(!r){ const e=document.getElementById("wInput"); if(e) e.style.borderColor="var(--danger)"; toast(t("weight.err")); return; }
+    closeModal(); toast(t("weight.logged"));
+    if(App.syncToCloud) App.syncToCloud();
+    if(currentTab==="profile") renderProfile();
+  }
+
   /* ============================================================
      MEALS
      ============================================================ */
@@ -650,6 +714,8 @@ window.App = (() => {
         <div class="list-item" style="cursor:default"><span class="li-ico">🥗</span><span>${t("p.diet")}</span><span class="li-arrow">${dietMap[a.diet]||a.diet}</span></div>
       </div>
 
+      ${weightSection()}
+
       <div class="sec-head"><h3>${t("p.subStatus")}</h3></div>
       <div class="list-group">
         <div class="list-item" data-action="manage-sub"><span class="li-ico">👑</span><span>${t("p.subscription")}</span><span class="li-arrow">${pro?t("p.pro"):t("p.free")}</span></div>
@@ -671,6 +737,7 @@ window.App = (() => {
         <div class="list-item" data-action="open-privacy"><span class="li-ico">🔒</span><span>${t("p.privacy")}</span><span class="li-arrow">${arrow}</span></div>
       </div>
       <p class="paywall-note" style="text-align:center;line-height:1.7">⚕️ ${t("disc.body")}<br>Siam · v1.0</p>`;
+    drawWeightChart();
   }
 
   /* ============================================================
