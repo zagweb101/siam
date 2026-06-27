@@ -20,55 +20,27 @@ window.API = (() => {
     } finally { clearTimeout(t); }
   }
 
-  /* ---------------- MEALS ---------------- */
+  /* ---------------- MEALS (pluggable Pro providers) ---------------- */
   async function meals(category, lang){
-    // Arabic users get fully-Arabic curated meals (names + recipes)
-    if(lang === "ar"){
-      const all = DATA.mealsAr || [];
-      const filtered = (category && category !== "all") ? all.filter(m=>m.cat===category) : all;
-      return (filtered.length ? filtered : all).map(m=>({
-        id:m.id, title:m.title, title_ar:m.title_ar, img:m.img, cat:m.cat, area:m.area, free:m.free
-      }));
+    lang = lang === "ar" ? "ar" : "en";
+    const chain = (window.Providers && Providers.chain("meals", lang)) || [];
+    for(const pid of chain){
+      const p = Providers.meals[pid]; if(!p) continue;
+      try{ const list = await p.list(category, lang); if(list && list.length) return list; }
+      catch(e){ console.warn("meal provider "+pid+" failed:", e.message); /* try next */ }
     }
-    try{
-      const cat = category && category !== "all" ? category : "Vegetarian";
-      const data = await jget(`${MEALDB}/filter.php?c=${encodeURIComponent(cat)}`);
-      const list = (data.meals || []).slice(0, 18).map((m,i)=>({
-        id: m.idMeal,
-        title: m.strMeal,
-        title_ar: m.strMeal,
-        img: m.strMealThumb,
-        cat: cat,
-        area: m.strArea || "",
-        free: i < 2                  // first 2 free, rest are Pro
-      }));
-      return list.length ? list : DATA.fallbackMeals;
-    }catch(e){ console.warn("meals fallback:", e.message); return DATA.fallbackMeals; }
+    return DATA.fallbackMeals;   // last-resort offline content
   }
 
-  async function mealDetail(id){
-    // curated Arabic meal → return its Arabic recipe directly (no network)
-    if(String(id).startsWith("ar-")){
-      const m = (DATA.mealsAr || []).find(x=>x.id===id);
-      return m ? { id:m.id, title:m.title_ar, img:m.img, area:m.area, category:m.cat,
-        instructions:m.steps, ingredients:m.ingredients, youtube:"", source:"" } : null;
-    }
-    try{
-      const data = await jget(`${MEALDB}/lookup.php?i=${id}`);
-      const m = data.meals && data.meals[0];
-      if(!m) return null;
-      const ingredients = [];
-      for(let i=1;i<=20;i++){
-        const ing = m["strIngredient"+i], mea = m["strMeasure"+i];
-        if(ing && ing.trim()) ingredients.push({ ing: ing.trim(), measure:(mea||"").trim() });
-      }
-      return {
-        id:m.idMeal, title:m.strMeal, img:m.strMealThumb,
-        area:m.strArea, category:m.strCategory,
-        instructions:m.strInstructions, ingredients,
-        youtube:m.strYoutube, source:m.strSource
-      };
-    }catch(e){ console.warn("mealDetail:", e.message); return null; }
+  async function mealDetail(id, lang){
+    const s = String(id); const i = s.indexOf(":");
+    let pid, rawId;
+    if(i > 0){ pid = s.slice(0, i); rawId = s.slice(i+1); }
+    else { rawId = s; pid = s.startsWith("ar-") ? "curated-ar" : "themealdb"; }  // legacy/fallback ids
+    const p = window.Providers && Providers.meals[pid];
+    if(!p) return null;
+    try{ return await p.detail(rawId, lang); }
+    catch(e){ console.warn("mealDetail "+pid+":", e.message); return null; }
   }
 
   /* ---------------- ARTICLES (Wikipedia) ---------------- */

@@ -12,7 +12,9 @@ import morgan from "morgan";
 import rateLimit from "express-rate-limit";
 import webpush from "web-push";
 import { z } from "zod";
+import crypto from "node:crypto";
 import * as db from "./db.js";
+import { sendMail, wrap, mailEnabled } from "./mailer.js";
 import { hashPassword, verifyPassword, signToken, authRequired, isValidEmail } from "./auth.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -213,6 +215,41 @@ app.post("/api/auth/login", async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+/* ---- password reset: request a link ---- */
+app.post("/api/auth/forgot", async (req, res) => {
+  const email = String((req.body || {}).email || "").toLowerCase().trim();
+  try {
+    if (isValidEmail(email)) {
+      const u = await db.getUserByEmail(email);
+      if (u) {
+        const token = crypto.randomBytes(32).toString("hex");
+        const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+        await db.setReset(u.id, tokenHash, Date.now() + 60 * 60 * 1000); // 1h
+        const origin = req.headers.origin || `https://${req.headers.host}`;
+        const link = `${origin}/?reset=${token}`;
+        await sendMail(email, "استعادة كلمة المرور · Reset your password",
+          wrap("Siam password reset", `<p>لإعادة تعيين كلمة المرور اضغط الرابط (صالح لساعة واحدة):</p>
+          <p><a href="${link}" style="background:#0f9d6b;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">إعادة التعيين · Reset</a></p>
+          <p style="font-size:12px;color:#52615b">${link}</p>`));
+      }
+    }
+  } catch (e) { /* never reveal */ }
+  res.json({ ok: true, mailEnabled }); // always ok (no account enumeration)
+});
+
+/* ---- password reset: set a new password ---- */
+app.post("/api/auth/reset", async (req, res) => {
+  const { token, password } = req.body || {};
+  if (!token || !password || String(password).length < 6) return res.status(400).json({ error: "weak_password" });
+  try {
+    const tokenHash = crypto.createHash("sha256").update(String(token)).digest("hex");
+    const u = await db.getUserByReset(tokenHash);
+    if (!u) return res.status(400).json({ error: "invalid_token" });
+    await db.setPassword(u.id, hashPassword(password));
+    res.json({ token: signToken({ uid: u.id, email: u.email }), user: u });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get("/api/me", authRequired, async (req, res) => {
   try {
     const [profile, pro, s] = await Promise.all([
@@ -227,6 +264,21 @@ app.put("/api/me/profile", authRequired, async (req, res) => {
   const data = req.body && req.body.profile;
   if (!data || typeof data !== "object") return res.status(400).json({ error: "no_profile" });
   try { await db.saveProfile(req.userId, data); res.json({ ok: true }); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+/* ---- export my data (GDPR) ---- */
+app.get("/api/me/export", authRequired, async (req, res) => {
+  try {
+    const [profile, sub] = await Promise.all([db.getProfile(req.userId), db.getSubscription(req.userId)]);
+    res.setHeader("Content-Disposition", 'attachment; filename="siam-my-data.json"');
+    res.json({ exportedAt: new Date().toISOString(), user: { id: req.userId, email: req.userEmail }, profile, subscription: sub });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+/* ---- delete my account + all data ---- */
+app.delete("/api/me", authRequired, async (req, res) => {
+  try { await db.deleteUser(req.userId); res.json({ ok: true }); }
   catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -321,6 +373,23 @@ app.post("/api/subscriptions/verify", needPaypal, authRequired, async (req, res)
       return res.json({ status: data.status, pro: true, expiresAt });
     }
     res.json({ status: data.status, pro: false });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+/* ---- cancel subscription from inside the app (keeps access until period end) ---- */
+app.post("/api/subscriptions/cancel", needPaypal, authRequired, async (req, res) => {
+  try {
+    const s = await db.getSubscription(req.userId);
+    if (!s) return res.json({ ok: true, note: "no_subscription" });
+    if (s.source === "subscription" && s.ref) {
+      const { ok, data } = await pp(`/v1/billing/subscriptions/${s.ref}/cancel`, "POST", { reason: "User requested cancellation" });
+      if (!ok && data && data.name && data.name !== "SUBSCRIPTION_STATUS_INVALID") {
+        return res.status(502).json({ error: "cancel_failed", details: data });
+      }
+    }
+    // mark cancelled but keep expires_at → Pro stays until the paid period ends
+    await db.setSubscription(req.userId, { status: "CANCELLED", source: s.source, ref: s.ref, planId: s.plan_id, expiresAt: s.expires_at });
+    res.json({ ok: true, pro: await db.isPro(req.userId) });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

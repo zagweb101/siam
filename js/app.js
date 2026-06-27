@@ -13,6 +13,11 @@ window.App = (() => {
     const st = Store.get();
     i18n.set(st.lang || "ar");
     bindGlobalEvents();
+    // password-reset deep link (?reset=token) → show the reset form over splash
+    try{
+      const rt = new URLSearchParams(location.search).get("reset");
+      if(rt){ showScreen("splash"); showReset(rt); return; }
+    }catch(e){}
     if(Auth.isLoggedIn()){
       hydrateFromCloud().finally(()=>{
         if(Store.get().onboarded) enterApp(); else showScreen("splash");
@@ -131,6 +136,13 @@ window.App = (() => {
       case "share-card": shareAchievement(); break;
       case "log-weight": showLogWeight(); break;
       case "save-weight": saveWeight(); break;
+      case "export-data": exportData(); break;
+      case "delete-account": confirmDelete(); break;
+      case "do-delete": doDelete(); break;
+      case "cancel-sub": confirmCancelSub(); break;
+      case "do-cancel-sub": doCancelSub(); break;
+      case "forgot-pw": forgotPassword(); break;
+      case "reset-submit": submitReset(); break;
       case "restart-wizard": Wizard.start(); break;   // re-edit plan, keeps account & Pro
       case "manage-sub":
         if(Store.get().pro){ toast(t("sub.manageInfo")); }
@@ -754,6 +766,7 @@ window.App = (() => {
       <div class="list-group">
         <div class="list-item" data-action="manage-sub"><span class="li-ico">👑</span><span>${t("p.subscription")}</span><span class="li-arrow">${pro?t("p.pro"):t("p.free")}</span></div>
         ${subDateRow}
+        ${pro?`<div class="list-item" data-action="cancel-sub"><span class="li-ico">✖️</span><span>${t("sub.cancel")}</span><span class="li-arrow">${arrow}</span></div>`:""}
       </div>
 
       <div class="list-group">
@@ -769,6 +782,8 @@ window.App = (() => {
       <div class="list-group">
         <div class="list-item" data-action="open-terms"><span class="li-ico">📄</span><span>${t("p.terms")}</span><span class="li-arrow">${arrow}</span></div>
         <div class="list-item" data-action="open-privacy"><span class="li-ico">🔒</span><span>${t("p.privacy")}</span><span class="li-arrow">${arrow}</span></div>
+        ${Auth.isLoggedIn()?`<div class="list-item" data-action="export-data"><span class="li-ico">📦</span><span>${t("p.export")}</span><span class="li-arrow">${arrow}</span></div>
+        <div class="list-item li-danger" data-action="delete-account"><span class="li-ico">🗑️</span><span>${t("p.delete")}</span><span class="li-arrow">${arrow}</span></div>`:""}
       </div>
       <p class="paywall-note" style="text-align:center;line-height:1.7">⚕️ ${t("disc.body")}<br>Siam · v1.0</p>`;
     drawWeightChart();
@@ -915,7 +930,8 @@ window.App = (() => {
         <div class="field"><label>${t("auth.pass")}</label><input id="authPass" type="password" autocomplete="${isLogin?'current-password':'new-password'}" /></div>
         <button class="btn btn-primary btn-block" data-action="auth-submit" id="authBtn">${isLogin?t("auth.loginCta"):t("auth.registerCta")}</button>
         <p class="paywall-note" style="text-align:center;margin-top:14px">
-          <a data-action="auth-toggle" style="color:var(--green-700);cursor:pointer;font-weight:700">${isLogin?t("auth.toRegister"):t("auth.toLogin")}</a>
+          <a data-action="auth-toggle" style="color:var(--green-700);cursor:pointer;font-weight:600">${isLogin?t("auth.toRegister"):t("auth.toLogin")}</a>
+          ${isLogin?`<br><a data-action="forgot-pw" style="color:var(--ink-soft);cursor:pointer;font-size:12.5px">${t("auth.forgot")}</a>`:""}
         </p>
       </div>`);
     openModal();
@@ -942,6 +958,80 @@ window.App = (() => {
       const msg=i18n.t(key);
       if(errEl) errEl.textContent = (msg===key ? t("auth.err.generic") : msg);
       if(btn){ btn.disabled=false; btn.textContent = authMode==="login"?t("auth.loginCta"):t("auth.registerCta"); }
+    }
+  }
+
+  /* ---------- account management + password reset ---------- */
+  async function exportData(){
+    try{
+      const r=await fetch(apiBase()+"/api/me/export",{ headers:Auth.authHeader() });
+      if(!r.ok) throw 0;
+      const blob=await r.blob(); const url=URL.createObjectURL(blob);
+      const a=document.createElement("a"); a.href=url; a.download="siam-my-data.json"; a.click();
+      setTimeout(()=>URL.revokeObjectURL(url),3000); toast(t("export.done"));
+    }catch(e){ toast(t("auth.err.generic")); }
+  }
+  function confirmDelete(){
+    fillModal(`<div class="detail-body" style="text-align:center;padding:34px 24px">
+      <div style="font-size:46px">🗑️</div><h4 style="font-size:20px">${t("del.title")}</h4>
+      <p>${t("del.body")}</p>
+      <button class="btn btn-danger btn-block" data-action="do-delete">${t("del.confirm")}</button>
+      <button class="btn btn-ghost btn-block" data-action="close-modal" style="margin-top:6px">${t("common.cancel")}</button>
+    </div>`); openModal();
+  }
+  async function doDelete(){
+    try{
+      const r=await fetch(apiBase()+"/api/me",{ method:"DELETE", headers:Auth.authHeader() });
+      if(!r.ok) throw 0;
+      Auth.logout(); Store.reset(); closeModal(); updateProBadge(); showScreen("splash"); toast(t("del.done"));
+    }catch(e){ toast(t("auth.err.generic")); }
+  }
+  function confirmCancelSub(){
+    fillModal(`<div class="detail-body" style="text-align:center;padding:34px 24px">
+      <div style="font-size:46px">👑</div><h4 style="font-size:20px">${t("sub.cancel")}</h4>
+      <p>${t("sub.cancelBody")}</p>
+      <button class="btn btn-primary btn-block" data-action="do-cancel-sub">${t("sub.cancelConfirm")}</button>
+      <button class="btn btn-ghost btn-block" data-action="close-modal" style="margin-top:6px">${t("common.cancel")}</button>
+    </div>`); openModal();
+  }
+  async function doCancelSub(){
+    try{
+      const r=await fetch(apiBase()+"/api/subscriptions/cancel",{ method:"POST", headers:Object.assign({"Content-Type":"application/json"},Auth.authHeader()), body:"{}" });
+      if(!r.ok) throw 0;
+      closeModal(); await hydrateFromCloud(); rerenderCurrent(); toast(t("sub.cancelled"));
+    }catch(e){ toast(t("sub.cancelErr")); }
+  }
+  async function forgotPassword(){
+    const email=(document.getElementById("authEmail")||{}).value||"";
+    try{ await fetch(apiBase()+"/api/auth/forgot",{ method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email}) }); }catch(e){}
+    toast(t("auth.forgotSent"));
+  }
+  let _resetToken=null;
+  function showReset(token){
+    _resetToken=token;
+    fillModal(`<div class="detail-body" style="padding:28px 22px 30px">
+      <div style="text-align:center;font-size:40px">🔑</div>
+      <h4 style="text-align:center;font-size:20px">${t("auth.resetTitle")}</h4>
+      <div id="authErr" class="paywall-note" style="color:var(--danger);text-align:center;min-height:14px"></div>
+      <div class="field"><label>${t("auth.newPass")}</label><input id="resetPass" type="password" autocomplete="new-password" /></div>
+      <button class="btn btn-primary btn-block" data-action="reset-submit">${t("auth.resetCta")}</button>
+    </div>`); openModal();
+    setTimeout(()=>{ const el=document.getElementById("resetPass"); if(el) el.focus(); },60);
+  }
+  async function submitReset(){
+    const pass=(document.getElementById("resetPass")||{}).value||"";
+    const errEl=document.getElementById("authErr");
+    try{
+      const r=await fetch(apiBase()+"/api/auth/reset",{ method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ token:_resetToken, password:pass }) });
+      const j=await r.json().catch(()=>({}));
+      if(!r.ok) throw new Error(j.error||"generic");
+      Auth.setSession(j.token, j.user); _resetToken=null;
+      try{ history.replaceState(null,"",location.pathname); }catch(e){}
+      closeModal(); toast(t("auth.resetDone"));
+      await hydrateFromCloud(); if(Store.get().onboarded) enterApp(); else requireAuth("login", ()=>enterApp());
+    }catch(e){
+      const key="auth.err."+((e&&e.message)||"generic"); const msg=i18n.t(key);
+      if(errEl) errEl.textContent=(msg===key? t("auth.err.generic"):msg);
     }
   }
 

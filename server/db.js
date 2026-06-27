@@ -44,6 +44,8 @@ export async function init() {
         password_hash TEXT NOT NULL,
         created_at    TIMESTAMPTZ DEFAULT now()
       );
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token TEXT;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_exp TIMESTAMPTZ;
       CREATE TABLE IF NOT EXISTS profiles (
         user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
         data    JSONB NOT NULL DEFAULT '{}'::jsonb
@@ -105,6 +107,40 @@ export async function getUserById(id) {
   }
   const u = fileRead().users.find(u => u.id === id);
   return u ? { id: u.id, email: u.email } : null;
+}
+
+/* ---------------- password reset tokens ---------------- */
+export async function setReset(userId, tokenHash, exp) {
+  userId = Number(userId); const e = new Date(exp).toISOString();
+  if (usingPg) { await pool.query("UPDATE users SET reset_token=$2,reset_exp=$3 WHERE id=$1", [userId, tokenHash, e]); return; }
+  const d = fileRead(); const u = d.users.find(x => x.id === userId); if (u) { u.reset_token = tokenHash; u.reset_exp = e; fileWrite(d); }
+}
+export async function getUserByReset(tokenHash) {
+  if (usingPg) {
+    const r = await pool.query("SELECT id,email FROM users WHERE reset_token=$1 AND reset_exp > now()", [tokenHash]);
+    return r.rows[0] || null;
+  }
+  const u = (fileRead().users || []).find(x => x.reset_token === tokenHash && x.reset_exp && new Date(x.reset_exp).getTime() > Date.now());
+  return u ? { id: u.id, email: u.email } : null;
+}
+export async function setPassword(userId, passwordHash) {
+  userId = Number(userId);
+  if (usingPg) { await pool.query("UPDATE users SET password_hash=$2,reset_token=NULL,reset_exp=NULL WHERE id=$1", [userId, passwordHash]); return; }
+  const d = fileRead(); const u = d.users.find(x => x.id === userId); if (u) { u.password_hash = passwordHash; u.reset_token = null; u.reset_exp = null; fileWrite(d); }
+}
+
+/* delete a user and all their data (GDPR / account deletion) */
+export async function deleteUser(userId) {
+  userId = Number(userId);
+  if (usingPg) {
+    // subscriptions/profiles/push cascade via ON DELETE CASCADE
+    await pool.query("DELETE FROM users WHERE id=$1", [userId]);
+    return;
+  }
+  const d = fileRead();
+  d.users = (d.users || []).filter(u => u.id !== userId);
+  delete d.profiles[userId]; delete d.subs[userId]; if (d.push) delete d.push[userId];
+  fileWrite(d);
 }
 
 /* ---------------- profiles (answers + plan) ---------------- */

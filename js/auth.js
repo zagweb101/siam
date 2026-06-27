@@ -50,6 +50,7 @@ window.Auth = (() => {
     user: getUser,
     isLoggedIn: () => !!getToken(),
     register, login, logout, me, saveProfile,
+    setSession: (t, u) => { setToken(t); setUser(u); },
     authHeader: () => (getToken() ? { Authorization: "Bearer " + getToken() } : {}),
   };
 })();

@@ -81,6 +81,8 @@ body{
 .btn-ghost{background:transparent;color:var(--green-700)}
 .btn-outline{background:#fff;color:var(--green-700);border:1.5px solid var(--green-300)}
 .btn-lg{padding:16px 26px;font-size:17px}
+.btn-danger{background:var(--danger);color:#fff}
+.li-danger span:not(.li-arrow){color:var(--danger)}
 .btn-block{width:100%}
 .icon-btn{
   width:40px;height:40px;border-radius:12px;border:none;background:rgba(255,255,255,.7);
